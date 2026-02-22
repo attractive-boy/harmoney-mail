@@ -235,47 +235,32 @@ export struct Mine {
     Column() {
       Row() {
         Row() {
-          Image($r('app.media.ic_goods_star'))
-            .width(18)
-            .height(18)
-          Text('商品收藏0')
-            .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
-            .margin({left: 4})
+          Text('我的订单')
+            .fontSize(StyleConstants.FONT_SIZE_SIXTEEN)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#333333')
         }
-        .width('calc(100% / 3)')
-        .height(StyleConstants.FULL_WIDTH)
-        .alignItems(VerticalAlign.Center)
-        .justifyContent(FlexAlign.Start)
-
+        
+        Blank()
+        
         Row() {
-          Image($r('app.media.ic_store_focus'))
-            .width(18)
-            .height(18)
-          Text('店铺关注16')
+          Text('查看全部')
             .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
+            .fontColor('#999999')
+          Image($r('app.media.ic_arrow_right'))
+            .width(16)
+            .height(16)
             .margin({left: 4})
         }
-        .width('calc(100% / 3)')
-        .height(StyleConstants.FULL_WIDTH)
-        .alignItems(VerticalAlign.Center)
-        .justifyContent(FlexAlign.Center)
-
-        Row() {
-          Image($r('app.media.ic_look_history'))
-            .width(18)
-            .height(18)
-          Text('浏览记录20')
-            .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
-            .margin({left: 4})
-        }
-        .width('calc(100% / 3)')
-        .height(StyleConstants.FULL_WIDTH)
-        .alignItems(VerticalAlign.Center)
-        .justifyContent(FlexAlign.End)
+        .onClick(() => {
+          router.pushUrl({
+            url: 'pages/order/orderList',
+            params: { status: 'ALL' }
+          })
+        })
       }
-      .height(42)
-      .border({width: { bottom: 1}, style: {bottom: BorderStyle.Solid}, color: '#F2F2F2'})
       .width(StyleConstants.FULL_WIDTH)
+      .padding({bottom: 12})
 
       Row() {
         Column() {
@@ -286,11 +271,37 @@ export struct Mine {
             .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
             .margin({top: 2})
         }
-        .width('calc(100% / 4)')
+        .width('calc(100% / 5)')
         .padding({bottom: 20})
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
         .height(StyleConstants.FULL_HEIGHT)
+        .onClick(() => {
+          router.pushUrl({
+            url: 'pages/order/orderList',
+            params: { status: 'PENDING_PAYMENT' }
+          })
+        })
+
+        Column() {
+          Image($r('app.media.ic_todo_get'))
+            .width(42)
+            .height(42)
+          Text('待发货')
+            .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
+            .margin({top: 2})
+        }
+        .width('calc(100% / 5)')
+        .padding({bottom: 20})
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .height(StyleConstants.FULL_HEIGHT)
+        .onClick(() => {
+          router.pushUrl({
+            url: 'pages/order/orderList',
+            params: { status: 'PENDING_SHIPMENT' }
+          })
+        })
 
         Column() {
           Image($r('app.media.ic_todo_get'))
@@ -300,11 +311,17 @@ export struct Mine {
             .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
             .margin({top: 2})
         }
-        .width('calc(100% / 4)')
+        .width('calc(100% / 5)')
         .padding({bottom: 20})
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
         .height(StyleConstants.FULL_HEIGHT)
+        .onClick(() => {
+          router.pushUrl({
+            url: 'pages/order/orderList',
+            params: { status: 'PENDING_RECEIPT' }
+          })
+        })
 
         Column() {
           Image($r('app.media.ic_todo_evaluate'))
@@ -314,11 +331,17 @@ export struct Mine {
             .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
             .margin({top: 2})
         }
-        .width('calc(100% / 4)')
+        .width('calc(100% / 5)')
         .padding({bottom: 20})
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
         .height(StyleConstants.FULL_HEIGHT)
+        .onClick(() => {
+          router.pushUrl({
+            url: 'pages/order/orderList',
+            params: { status: 'COMPLETED' }
+          })
+        })
 
         Column() {
           Image($r('app.media.ic_todo_exchange'))
@@ -328,7 +351,7 @@ export struct Mine {
             .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
             .margin({top: 2})
         }
-        .width('calc(100% / 4)')
+        .width('calc(100% / 5)')
         .padding({bottom: 20})
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
@@ -337,7 +360,7 @@ export struct Mine {
       .height(90)
       .width(StyleConstants.FULL_WIDTH)
     }
-    .height(132)
+    .height(144)
     .width('calc(100% - 20vp)')
     .backgroundColor(Color.White)
     .border({radius: 10})
