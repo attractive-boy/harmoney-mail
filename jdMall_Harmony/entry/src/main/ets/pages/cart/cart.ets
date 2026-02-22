@@ -1,6 +1,7 @@
 import { CommodityList, FloatingBackTop, StepperComponent, StyleConstants } from "@ohos/common"
 import { ImageKnifeView } from '@ohos/common'
 import { AppUtil, DisplayUtil, ToastUtil, WindowUtil } from "@pura/harmony-utils"
+import router from '@ohos.router'
 import {
   clearCart,
   GoodsInfo,
@@ -154,74 +155,88 @@ export struct Cart {
                 .justifyContent(FlexAlign.Center)
                 .height(StyleConstants.FULL_HEIGHT)
 
-                ImageKnifeView({
-                  loadSrc: goodsItem.imgUrl,
-                  objectFit: ImageFit.Fill,
-                  borderOption: {radius: 8}
-                })
-                  .height(80)
-                  .width(80)
+                Row() {
+                  ImageKnifeView({
+                    loadSrc: goodsItem.imgUrl,
+                    objectFit: ImageFit.Fill,
+                    borderOption: {radius: 8}
+                  })
+                    .height(80)
+                    .width(80)
+                    .margin({ right: 10 })
 
-                Column() {
-                  Text(goodsItem.description)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .fontColor('#777677')
-                    .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
+                  Column() {
+                    Text(goodsItem.description)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+                      .fontColor('#777677')
+                      .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
 
-                  Text(`${goodsItem.color}，${goodsItem.size}，选服务`)
-                    .backgroundColor('#F1F1F1')
-                    .fontColor('#949596')
-                    .fontSize(StyleConstants.FONT_SIZE_TWELVE)
-                    .padding({left: 5, right: 5, top: 2, bottom: 2})
-                    .border({radius: 12 })
+                    Text(`${goodsItem.color}，${goodsItem.size}，选服务`)
+                      .backgroundColor('#F1F1F1')
+                      .fontColor('#949596')
+                      .fontSize(StyleConstants.FONT_SIZE_TWELVE)
+                      .padding({left: 5, right: 5, top: 2, bottom: 2})
+                      .border({radius: 12 })
+                      .margin({top: 6})
+
+                    Row() {
+                      Text(`￥${goodsItem.price}`)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor($r('app.color.dot_active_color'))
+                        .fontSize(StyleConstants.FONT_SIZE_EIGHTEEN)
+
+                      StepperComponent({
+                        initialValue: goodsItem.num,
+                        min: 1,
+                        max: 9999,
+                        step: 1,
+                        onChange: (val: number) => {
+                          this.updateItemNum(goodsItem, val)
+                        }
+                      })
+                    }
+                    .width(StyleConstants.FULL_WIDTH)
+                    .justifyContent(FlexAlign.SpaceBetween)
                     .margin({top: 6})
 
-                  Row() {
-                    Text(`￥${goodsItem.price}`)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor($r('app.color.dot_active_color'))
-                      .fontSize(StyleConstants.FONT_SIZE_EIGHTEEN)
-
-                    StepperComponent({
-                      initialValue: goodsItem.num,
-                      min: 1,
-                      max: 9999,
-                      step: 1,
-                      onChange: (val: number) => {
-                        this.updateItemNum(goodsItem, val)
-                      }
-                    })
-                  }
-                  .width(StyleConstants.FULL_WIDTH)
-                  .justifyContent(FlexAlign.SpaceBetween)
-                  .margin({top: 6})
-
-                  Row() {
-                    this.StatusChip('暂存', goodsItem.saved, () => {
-                      this.toggleItemFlag(goodsItem, 'saved')
-                    })
-                    this.StatusChip('收藏', goodsItem.favorite, () => {
-                      this.toggleItemFlag(goodsItem, 'favorite')
-                    })
-                    this.StatusChip('对比', goodsItem.compare, () => {
-                      this.toggleItemFlag(goodsItem, 'compare')
-                    })
-                    Blank()
-                    Text('删除')
-                      .fontSize(11)
-                      .fontColor('#E53935')
-                      .onClick(() => {
-                        this.removeSingleItem(goodsItem)
+                    Row() {
+                      this.StatusChip('暂存', goodsItem.saved, () => {
+                        this.toggleItemFlag(goodsItem, 'saved')
                       })
+                      this.StatusChip('收藏', goodsItem.favorite, () => {
+                        this.toggleItemFlag(goodsItem, 'favorite')
+                      })
+                      this.StatusChip('对比', goodsItem.compare, () => {
+                        this.toggleItemFlag(goodsItem, 'compare')
+                      })
+                      Blank()
+                      Text('删除')
+                        .fontSize(11)
+                        .fontColor('#E53935')
+                        .padding({ right: 6 })
+                        .onClick(() => {
+                          this.removeSingleItem(goodsItem)
+                        })
+                    }
+                    .width(StyleConstants.FULL_WIDTH)
+                    .margin({ top: 8 })
+                    .justifyContent(FlexAlign.Start)
                   }
-                  .width(StyleConstants.FULL_WIDTH)
-                  .margin({ top: 8 })
+                  .width(`calc(100% - 125vp)`)
+                  .padding({left: 6, right: 6})
+                  .alignItems(HorizontalAlign.Start)
+                  .justifyContent(FlexAlign.Start)
                 }
-                .width(`calc(100% - 125vp)`)
-                .padding({left: 6, right: 6})
-                .alignItems(HorizontalAlign.Start)
-                .justifyContent(FlexAlign.Start)
+                .layoutWeight(1)
+                .onClick(() => {
+                  router.pushUrl({
+                    url: 'pages/detail/detail',
+                    params: {
+                      goodsId: goodsItem.code
+                    }
+                  })
+                })
               }
               .height(108)
               .width(StyleConstants.FULL_WIDTH)
