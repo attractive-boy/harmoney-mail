@@ -8,8 +8,16 @@ import {
   payOrder,
   confirmOrder,
   deleteOrder,
-  OrderInfo
+  OrderInfo,
+  OrderItem,
+  QueryOrderListParams
 } from '../../service/orderService'
+
+// Tab项接口
+interface TabItem {
+  key: string
+  label: string
+}
 
 @Entry
 @Component
@@ -26,12 +34,12 @@ export struct OrderList {
 
   private scroller: Scroller = new Scroller()
 
-  private tabs: { key: string, label: string }[] = [
-    { key: 'ALL', label: '全部' },
-    { key: 'PENDING_PAYMENT', label: '待付款' },
-    { key: 'PENDING_SHIPMENT', label: '待发货' },
-    { key: 'PENDING_RECEIPT', label: '待收货' },
-    { key: 'COMPLETED', label: '已完成' }
+  private tabs: TabItem[] = [
+    { key: 'ALL', label: '全部' } as TabItem,
+    { key: 'PENDING_PAYMENT', label: '待付款' } as TabItem,
+    { key: 'PENDING_SHIPMENT', label: '待发货' } as TabItem,
+    { key: 'PENDING_RECEIPT', label: '待收货' } as TabItem,
+    { key: 'COMPLETED', label: '已完成' } as TabItem
   ]
 
   aboutToAppear() {
@@ -124,7 +132,7 @@ export struct OrderList {
   @Builder
   TabBar() {
     Row() {
-      ForEach(this.tabs, (tab: { key: string, label: string }) => {
+      ForEach(this.tabs, (tab: TabItem) => {
         Column() {
           Text(tab.label)
             .fontSize(14)
@@ -177,7 +185,7 @@ export struct OrderList {
       .backgroundColor('#FAFAFA')
 
       // 商品列表
-      ForEach(order.items, (item) => {
+      ForEach(order.items, (item: OrderItem) => {
         Row() {
           ImageKnifeView({
             loadSrc: item.goodsImage,
@@ -320,7 +328,7 @@ export struct OrderList {
       status: this.currentTab,
       page: this.currentPage,
       size: 10
-    }).then(result => {
+    } as QueryOrderListParams).then(result => {
       if (this.currentPage === 0) {
         this.orderList = result.orderList
       } else {

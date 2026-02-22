@@ -8,7 +8,8 @@ import {
   payOrder,
   confirmOrder,
   deleteOrder,
-  OrderInfo
+  OrderInfo,
+  OrderItem
 } from '../../service/orderService'
 
 @Entry
@@ -111,34 +112,33 @@ export struct OrderDetail {
 
   @Builder
   StatusSection() {
-    if (this.orderInfo === null) return
-    
-    Column() {
-      Text(this.orderInfo.statusText)
-        .fontSize(18)
-        .fontColor('#E53935')
-        .fontWeight(FontWeight.Medium)
+    if (this.orderInfo !== null) {
+      Column() {
+        Text(this.orderInfo.statusText)
+          .fontSize(18)
+          .fontColor('#E53935')
+          .fontWeight(FontWeight.Medium)
       
       // 订单时间线
       Column() {
         if (this.orderInfo.status === 'PENDING_PAYMENT') {
-          this.TimelineItem('订单已创建', this.formatTime(this.orderInfo.createTime), true)
+          this.TimelineItem('订单已创建', this.formatTime(this.orderInfo.createdAt), true)
         } else if (this.orderInfo.status === 'CANCELLED') {
-          this.TimelineItem('订单已取消', this.formatTime(this.orderInfo.cancelTime), true)
-          this.TimelineItem('订单已创建', this.formatTime(this.orderInfo.createTime), false)
+          this.TimelineItem('订单已取消', '', true)
+          this.TimelineItem('订单已创建', this.formatTime(this.orderInfo.createdAt), false)
         } else {
           if (this.orderInfo.status === 'COMPLETED') {
-            this.TimelineItem('订单已完成', this.formatTime(this.orderInfo.completeTime), true)
-            this.TimelineItem('确认收货', this.formatTime(this.orderInfo.receiveTime), false)
-            this.TimelineItem('商品已发货', this.formatTime(this.orderInfo.shipTime), false)
-            this.TimelineItem('付款成功', this.formatTime(this.orderInfo.payTime), false)
+            this.TimelineItem('订单已完成', this.formatTime(this.orderInfo.completedTime || ''), true)
+            this.TimelineItem('确认收货', '', false)
+            this.TimelineItem('商品已发货', this.formatTime(this.orderInfo.shipmentTime || ''), false)
+            this.TimelineItem('付款成功', this.formatTime(this.orderInfo.paymentTime || ''), false)
           } else if (this.orderInfo.status === 'PENDING_RECEIPT') {
-            this.TimelineItem('商品已发货', this.formatTime(this.orderInfo.shipTime), true)
-            this.TimelineItem('付款成功', this.formatTime(this.orderInfo.payTime), false)
+            this.TimelineItem('商品已发货', this.formatTime(this.orderInfo.shipmentTime || ''), true)
+            this.TimelineItem('付款成功', this.formatTime(this.orderInfo.paymentTime || ''), false)
           } else if (this.orderInfo.status === 'PENDING_SHIPMENT') {
-            this.TimelineItem('付款成功', this.formatTime(this.orderInfo.payTime), true)
+            this.TimelineItem('付款成功', this.formatTime(this.orderInfo.paymentTime || ''), true)
           }
-          this.TimelineItem('订单已创建', this.formatTime(this.orderInfo.createTime), false)
+          this.TimelineItem('订单已创建', this.formatTime(this.orderInfo.createdAt), false)
         }
       }
       .padding({ top: 20 })
@@ -148,6 +148,7 @@ export struct OrderDetail {
     .padding(20)
     .backgroundColor(Color.White)
     .margin({ bottom: 8 })
+    }
   }
 
   @Builder
@@ -189,10 +190,9 @@ export struct OrderDetail {
 
   @Builder
   AddressSection() {
-    if (this.orderInfo === null) return
-    
-    Column() {
-      Row() {
+    if (this.orderInfo !== null) {
+      Column() {
+        Row() {
         Column() {
           Row() {
             Text(this.orderInfo.receiverName)
@@ -221,29 +221,29 @@ export struct OrderDetail {
           .margin({ left: 12 })
       }
       .width('100%')
+      }
+      .width('100%')
+      .padding(16)
+      .backgroundColor(Color.White)
+      .margin({ bottom: 8 })
     }
-    .width('100%')
-    .padding(16)
-    .backgroundColor(Color.White)
-    .margin({ bottom: 8 })
   }
 
   @Builder
   GoodsSection() {
-    if (this.orderInfo === null) return
-    
-    Column() {
-      Text('商品信息')
-        .fontSize(15)
-        .fontColor('#333333')
-        .fontWeight(FontWeight.Medium)
-        .padding(12)
-      
-      Divider().color('#EEEEEE')
-      
-      ForEach(this.orderInfo.items, (item) => {
-        Row() {
-          ImageKnifeView({
+    if (this.orderInfo !== null) {
+      Column() {
+        Text('商品信息')
+          .fontSize(15)
+          .fontColor('#333333')
+          .fontWeight(FontWeight.Medium)
+          .padding(12)
+        
+        Divider().color('#EEEEEE')
+        
+        ForEach(this.orderInfo.items, (item: OrderItem) => {
+          Row() {
+            ImageKnifeView({
             loadSrc: item.goodsImage,
             objectFit: ImageFit.Cover,
             borderOption: { radius: 4 }
@@ -289,13 +289,13 @@ export struct OrderDetail {
           .alignItems(HorizontalAlign.Start)
         }
         .width('100%')
-        .padding(12)
+          .padding(12)
+          
+          Divider().color('#F5F5F5')
+        })
         
-        Divider().color('#F5F5F5')
-      })
-      
-      Row() {
-        Text('合计')
+        Row() {
+          Text('合计')
           .fontSize(14)
           .fontColor('#333333')
         
@@ -305,42 +305,42 @@ export struct OrderDetail {
           .fontSize(16)
           .fontColor('#E53935')
           .fontWeight(FontWeight.Bold)
+        }
+        .width('100%')
+        .padding(12)
+        .backgroundColor('#FAFAFA')
       }
       .width('100%')
-      .padding(12)
-      .backgroundColor('#FAFAFA')
+      .backgroundColor(Color.White)
+      .margin({ bottom: 8 })
     }
-    .width('100%')
-    .backgroundColor(Color.White)
-    .margin({ bottom: 8 })
   }
 
   @Builder
   InfoSection() {
-    if (this.orderInfo === null) return
-    
-    Column() {
-      Text('订单信息')
-        .fontSize(15)
-        .fontColor('#333333')
-        .fontWeight(FontWeight.Medium)
-        .padding(12)
+    if (this.orderInfo !== null) {
+      Column() {
+        Text('订单信息')
+          .fontSize(15)
+          .fontColor('#333333')
+          .fontWeight(FontWeight.Medium)
+          .padding(12)
       
       Divider().color('#EEEEEE')
       
       this.InfoRow('订单号', this.orderInfo.orderNo)
-      this.InfoRow('创建时间', this.formatTime(this.orderInfo.createTime))
+      this.InfoRow('创建时间', this.formatTime(this.orderInfo.createdAt))
       
-      if (this.orderInfo.payTime) {
-        this.InfoRow('支付时间', this.formatTime(this.orderInfo.payTime))
+      if (this.orderInfo.paymentTime) {
+        this.InfoRow('支付时间', this.formatTime(this.orderInfo.paymentTime))
       }
       
-      if (this.orderInfo.shipTime) {
-        this.InfoRow('发货时间', this.formatTime(this.orderInfo.shipTime))
+      if (this.orderInfo.shipmentTime) {
+        this.InfoRow('发货时间', this.formatTime(this.orderInfo.shipmentTime))
       }
       
-      if (this.orderInfo.receiveTime) {
-        this.InfoRow('收货时间', this.formatTime(this.orderInfo.receiveTime))
+      if (this.orderInfo.completedTime) {
+        this.InfoRow('完成时间', this.formatTime(this.orderInfo.completedTime))
       }
       
       if (this.orderInfo.remark) {
@@ -350,6 +350,7 @@ export struct OrderDetail {
     .width('100%')
     .backgroundColor(Color.White)
     .margin({ bottom: 8 })
+    }
   }
 
   @Builder
@@ -371,15 +372,14 @@ export struct OrderDetail {
 
   @Builder
   ActionBar() {
-    if (this.orderInfo === null) return
-    
-    Row() {
-      Text(`￥${this.orderInfo.totalAmount}`)
-        .fontSize(16)
-        .fontColor('#E53935')
-        .fontWeight(FontWeight.Bold)
-      
-      Blank()
+    if (this.orderInfo !== null) {
+      Row() {
+        Text(`￥${this.orderInfo.totalAmount}`)
+          .fontSize(16)
+          .fontColor('#E53935')
+          .fontWeight(FontWeight.Bold)
+        
+        Blank()
       
       if (this.orderInfo.status === 'PENDING_PAYMENT') {
         Button('取消订单')
@@ -422,15 +422,15 @@ export struct OrderDetail {
           .margin({ left: 8 })
           .onClick(() => this.handleDeleteOrder())
       }
+      }
+      .width('100%')
+      .height(60 + this.safeBottom)
+      .padding({ left: 16, right: 16, bottom: this.safeBottom, top: 10 })
+      .backgroundColor(Color.White)
+      .shadow({ radius: 8, color: '#10000000', offsetY: -2 })
+      .zIndex(999)
     }
-    .width('100%')
-    .height(60 + this.safeBottom)
-    .padding({ left: 16, right: 16, bottom: this.safeBottom, top: 10 })
-    .backgroundColor(Color.White)
-    .shadow({ radius: 8, color: '#10000000', offsetY: -2 })
-    .zIndex(999)
-  }
-
+    }
   private loadOrderDetail() {
     this.isLoading = true
     queryOrderDetail(this.userId, this.orderId).then(result => {

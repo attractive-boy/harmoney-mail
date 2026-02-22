@@ -1,5 +1,31 @@
-import { RequestUtil } from '@ohos/common'
-import { EnvConfig } from '../constants/EnvConfig'
+import { RequestUtil, EnvConfig, isSuccess } from '@ohos/common'
+
+// 请求参数接口
+export interface CreateOrderParams {
+  userId: string
+  receiverName?: string
+  receiverPhone?: string
+  receiverAddress?: string
+  remark?: string
+}
+
+export interface CreateOrderResult {
+  orderId: number
+  orderNo: string
+  totalAmount: string
+}
+
+export interface QueryOrderListParams {
+  userId: string
+  status?: string
+  page?: number
+  size?: number
+}
+
+export interface CancelOrderParams {
+  userId: string
+  orderId: number
+}
 
 export interface OrderItem {
   id: number
@@ -41,29 +67,21 @@ export interface OrderListResponse {
 /**
  * 创建订单（从购物车已选商品）
  */
-export const createOrder = async (params: {
-  userId: string,
-  receiverName?: string,
-  receiverPhone?: string,
-  receiverAddress?: string,
-  remark?: string
-}): Promise<{ orderId: number, orderNo: string, totalAmount: string }> => {
-  const res = await RequestUtil.post<{ orderId: number, orderNo: string, totalAmount: string }>(
+export const createOrder = async (params: CreateOrderParams): Promise<CreateOrderResult> => {
+  const res = await RequestUtil.post<CreateOrderResult>(
     `${EnvConfig.baseUrl}/order/create`,
     params
   )
-  return res
+  if (isSuccess(res.code)) {
+    return res.data
+  }
+  throw new Error(res.msg || '创建订单失败')
 }
 
 /**
  * 查询订单列表
  */
-export const queryOrderList = async (params: {
-  userId: string,
-  status?: string, // ALL, PENDING_PAYMENT, PENDING_SHIPMENT, PENDING_RECEIPT, COMPLETED, CANCELLED
-  page?: number,
-  size?: number
-}): Promise<OrderListResponse> => {
+export const queryOrderList = async (params: QueryOrderListParams): Promise<OrderListResponse> => {
   const res = await RequestUtil.post<OrderListResponse>(
     `${EnvConfig.baseUrl}/order/list`,
     {
@@ -73,7 +91,10 @@ export const queryOrderList = async (params: {
       size: params.size || 10
     }
   )
-  return res
+  if (isSuccess(res.code)) {
+    return res.data
+  }
+  throw new Error(res.msg || '查询订单列表失败')
 }
 
 /**
@@ -84,7 +105,10 @@ export const queryOrderDetail = async (userId: string, orderId: number): Promise
     `${EnvConfig.baseUrl}/order/detail`,
     { userId, orderId }
   )
-  return res
+  if (isSuccess(res.code)) {
+    return res.data
+  }
+  throw new Error(res.msg || '查询订单详情失败')
 }
 
 /**
@@ -95,7 +119,10 @@ export const cancelOrder = async (userId: string, orderId: number): Promise<stri
     `${EnvConfig.baseUrl}/order/cancel`,
     { userId, orderId }
   )
-  return res
+  if (isSuccess(res.code)) {
+    return res.data
+  }
+  throw new Error(res.msg || '取消订单失败')
 }
 
 /**
@@ -106,7 +133,10 @@ export const confirmOrder = async (userId: string, orderId: number): Promise<str
     `${EnvConfig.baseUrl}/order/confirm`,
     { userId, orderId }
   )
-  return res
+  if (isSuccess(res.code)) {
+    return res.data
+  }
+  throw new Error(res.msg || '确认收货失败')
 }
 
 /**
@@ -117,7 +147,10 @@ export const deleteOrder = async (userId: string, orderId: number): Promise<stri
     `${EnvConfig.baseUrl}/order/delete`,
     { userId, orderId }
   )
-  return res
+  if (isSuccess(res.code)) {
+    return res.data
+  }
+  throw new Error(res.msg || '删除订单失败')
 }
 
 /**
@@ -128,5 +161,8 @@ export const payOrder = async (userId: string, orderId: number): Promise<string>
     `${EnvConfig.baseUrl}/order/pay`,
     { userId, orderId }
   )
-  return res
+  if (isSuccess(res.code)) {
+    return res.data
+  }
+  throw new Error(res.msg || '支付订单失败')
 }
