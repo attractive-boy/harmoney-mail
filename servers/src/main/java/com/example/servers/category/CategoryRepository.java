@@ -9,5 +9,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByLevelOrderByIdAsc(Integer level);
 
     List<Category> findByParentCodeOrderByIdAsc(String parentCode);
+
+    java.util.Optional<Category> findByCode(String code);
 }
 

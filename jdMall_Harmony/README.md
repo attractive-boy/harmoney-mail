@@ -3,8 +3,7 @@
 
 1. 鸿蒙官方状态管理
 2. 网络使用@ohos/axios进行封装
-3. 使用node项目mock服务端接口(mock_server目录)
-4. 目前实现了首页、分类、购物车、我的
+3. 目前实现了首页、分类、购物车、我的
 
 * ### 同款Android Kotlin版本（https://github.com/GuoguoDad/jd_mall）
 * ### 同款Flutter版本（https://github.com/GuoguoDad/jd_mall_flutter）
@@ -20,13 +19,7 @@
 
 # 开发环境
 DevEco Studio 6.0.2 Release  
-HarmonyOS 6.0.2  
-mock_server nodejs: v18.20.6
-
-# 启动mock_server
-1. cd mock_server
-2. 执行 npm i 安装依赖
-3. npm run mock
+HarmonyOS 6.0.2
 
 # 效果
 

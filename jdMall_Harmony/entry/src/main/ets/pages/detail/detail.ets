@@ -227,11 +227,15 @@ export struct Detail {
   @Builder
   TitleDescSection() {
     Column() {
-      Text(this.goods?.description || 'iPhone 15 Pro')
-        .fontSize(14)
-        .fontColor('#333333')
-        .fontWeight(FontWeight.Medium)
-        .lineHeight(1.5)
+      Row() {
+        Text(this.goods?.description || 'iPhone 15 Pro')
+          .fontSize(14)
+          .fontColor('#333333')
+          .fontWeight(FontWeight.Medium)
+          .lineHeight(20)
+      }
+      .alignItems(VerticalAlign.Center)
+      .width(StyleConstants.FULL_WIDTH)
 
       Row() {
         if (this.goods?.tag) {

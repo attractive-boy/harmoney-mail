@@ -2,13 +2,11 @@ package com.example.servers;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -22,6 +20,8 @@ import com.example.servers.goods.Goods;
 import com.example.servers.goods.GoodsRepository;
 import com.example.servers.home.HomeBanner;
 import com.example.servers.home.HomeBannerRepository;
+import com.example.servers.home.HomeConfig;
+import com.example.servers.home.HomeConfigRepository;
 import com.example.servers.home.HomeNineMenu;
 import com.example.servers.home.HomeNineMenuRepository;
 import com.example.servers.home.HomeTab;
@@ -39,8 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class ApiMockDataInitializer implements CommandLineRunner {
 
-    private final ApiMockRepository apiMockRepository;
     private final HomeBannerRepository homeBannerRepository;
+    private final HomeConfigRepository homeConfigRepository;
     private final HomeNineMenuRepository homeNineMenuRepository;
     private final HomeTabRepository homeTabRepository;
     private final CategoryRepository categoryRepository;
@@ -51,8 +51,8 @@ public class ApiMockDataInitializer implements CommandLineRunner {
     private final CartItemRepository cartItemRepository;
     private final Random random = new Random();
 
-    public ApiMockDataInitializer(ApiMockRepository apiMockRepository,
-                                  HomeBannerRepository homeBannerRepository,
+    public ApiMockDataInitializer(HomeBannerRepository homeBannerRepository,
+                                  HomeConfigRepository homeConfigRepository,
                                   HomeNineMenuRepository homeNineMenuRepository,
                                   HomeTabRepository homeTabRepository,
                                   CategoryRepository categoryRepository,
@@ -61,8 +61,8 @@ public class ApiMockDataInitializer implements CommandLineRunner {
                                   MineTabRepository mineTabRepository,
                                   StoreRepository storeRepository,
                                   CartItemRepository cartItemRepository) {
-        this.apiMockRepository = apiMockRepository;
         this.homeBannerRepository = homeBannerRepository;
+        this.homeConfigRepository = homeConfigRepository;
         this.homeNineMenuRepository = homeNineMenuRepository;
         this.homeTabRepository = homeTabRepository;
         this.categoryRepository = categoryRepository;
@@ -80,19 +80,15 @@ public class ApiMockDataInitializer implements CommandLineRunner {
         if (!Files.exists(apiRoot)) {
             return;
         }
-        if (apiMockRepository.count() == 0) {
-            importAllJsonAsMock(apiRoot);
-        }
-        removeDetailMocks();
         ObjectMapper mapper = new ObjectMapper();
         importHome(apiRoot, mapper);
         importCategory(apiRoot, mapper);
+        importCategoryContent(apiRoot, mapper);
         importGoods(apiRoot, mapper);
         backfillGoodsStats();
         importMine(apiRoot, mapper);
         importCart(apiRoot, mapper);
         importMaybeLike(apiRoot, mapper);
-        updateCategoryQueryContentMock(apiRoot);
     }
 
     private void backfillGoodsStats() {
@@ -128,42 +124,23 @@ public class ApiMockDataInitializer implements CommandLineRunner {
         }
     }
 
-    private void importAllJsonAsMock(Path apiRoot) throws IOException {
-        List<ApiMock> items = new ArrayList<>();
-        Files.walk(apiRoot)
-                .filter(p -> Files.isRegularFile(p) && p.toString().endsWith(".json"))
-                .forEach(p -> {
-                    try {
-                        String body = Files.readString(p, StandardCharsets.UTF_8);
-                        Path relative = apiRoot.relativize(p);
-                        String path = "/" + relative.toString().replace(FileSystems.getDefault().getSeparator(), "/");
-                        if (path.endsWith(".json")) {
-                            path = path.substring(0, path.length() - ".json".length());
-                        }
-                        items.add(new ApiMock(path, "POST", body));
-                    } catch (IOException e) {
-                    }
-                });
-        if (!items.isEmpty()) {
-            apiMockRepository.saveAll(items);
-        }
-    }
-
-        private void removeDetailMocks() {
-        apiMockRepository.deleteByPathAndMethod("/detail/queryGoodsDetail", "POST");
-        apiMockRepository.deleteByPathAndMethod("/detail/queryStoreGoodsList", "POST");
-    }
-
     private void importHome(Path apiRoot, ObjectMapper mapper) throws IOException {
-        if (homeBannerRepository.count() > 0 || homeNineMenuRepository.count() > 0 || homeTabRepository.count() > 0) {
-            return;
-        }
         Path homePath = apiRoot.resolve("home/queryHomePageInfo.json");
         if (!Files.exists(homePath)) {
             return;
         }
         JsonNode root = mapper.readTree(Files.readString(homePath, StandardCharsets.UTF_8));
         JsonNode data = root.path("data");
+        String adUrl = data.path("adUrl").asText(null);
+        if (homeConfigRepository.count() == 0 && adUrl != null && !adUrl.isEmpty()) {
+            HomeConfig config = new HomeConfig();
+            config.setAdUrl(adUrl);
+            homeConfigRepository.save(config);
+        }
+
+        if (homeBannerRepository.count() > 0 || homeNineMenuRepository.count() > 0 || homeTabRepository.count() > 0) {
+            return;
+        }
         JsonNode bannerList = data.path("bannerList");
         if (bannerList.isArray()) {
             for (JsonNode n : bannerList) {
@@ -211,6 +188,63 @@ public class ApiMockDataInitializer implements CommandLineRunner {
                     c.setLevel(1);
                     categoryRepository.save(c);
                 }
+            }
+        }
+    }
+
+    private void importCategoryContent(Path apiRoot, ObjectMapper mapper) throws IOException {
+        Path path = apiRoot.resolve("category/queryContentByCategory.json");
+        if (!Files.exists(path)) {
+            return;
+        }
+        JsonNode root = mapper.readTree(Files.readString(path, StandardCharsets.UTF_8));
+        JsonNode data = root.path("data");
+        String bannerUrl = data.path("bannerUrl").asText(null);
+
+        Category rootCategory = categoryRepository.findByCode("000")
+                .orElseGet(() -> {
+                    Category c = new Category();
+                    c.setCode("000");
+                    c.setName("推荐分类");
+                    c.setLevel(1);
+                    return categoryRepository.save(c);
+                });
+        if (bannerUrl != null && (rootCategory.getBannerUrl() == null || rootCategory.getBannerUrl().isEmpty())) {
+            rootCategory.setBannerUrl(bannerUrl);
+            categoryRepository.save(rootCategory);
+        }
+
+        JsonNode secondList = data.path("secondCateList");
+        if (!secondList.isArray()) {
+            return;
+        }
+        for (JsonNode secondNode : secondList) {
+            String secondCode = secondNode.path("categoryCode").asText(null);
+            String secondName = secondNode.path("categoryName").asText(null);
+            Category second = categoryRepository.findByCode(secondCode)
+                    .orElseGet(Category::new);
+            second.setCode(secondCode);
+            second.setName(secondName);
+            second.setParentCode(rootCategory.getCode());
+            second.setLevel(2);
+            categoryRepository.save(second);
+
+            JsonNode thirdList = secondNode.path("cateList");
+            if (!thirdList.isArray()) {
+                continue;
+            }
+            for (JsonNode thirdNode : thirdList) {
+                String thirdCode = thirdNode.path("categoryCode").asText(null);
+                String thirdName = thirdNode.path("categoryName").asText(null);
+                String iconUrl = thirdNode.path("iconUrl").asText(null);
+                Category third = categoryRepository.findByCode(thirdCode)
+                        .orElseGet(Category::new);
+                third.setCode(thirdCode);
+                third.setName(thirdName);
+                third.setParentCode(second.getCode());
+                third.setLevel(3);
+                third.setIconUrl(iconUrl);
+                categoryRepository.save(third);
             }
         }
     }
@@ -339,17 +373,4 @@ public class ApiMockDataInitializer implements CommandLineRunner {
         }
     }
 
-    private void updateCategoryQueryContentMock(Path apiRoot) throws IOException {
-        Path path = apiRoot.resolve("category/queryContentByCategory.json");
-        if (!Files.exists(path)) {
-            return;
-        }
-        String body = Files.readString(path, StandardCharsets.UTF_8);
-        String apiPath = "/category/queryContentByCategory";
-        apiMockRepository.findByPathAndMethod(apiPath, "POST")
-                .ifPresentOrElse(mock -> {
-                    mock.setResponseBody(body);
-                    apiMockRepository.save(mock);
-                }, () -> apiMockRepository.save(new ApiMock(apiPath, "POST", body)));
-    }
 }

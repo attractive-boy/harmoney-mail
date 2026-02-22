@@ -73,8 +73,8 @@ export struct SearchPage {
         }
       }
       .width(StyleConstants.FULL_WIDTH)
-      .height(50)
-      .padding({ left: 12, right: 12 })
+      .height(50 + this.safeTop)
+      .padding({ top: this.safeTop, left: 12, right: 12 })
       .alignItems(VerticalAlign.Center)
       .backgroundColor('#E53935')
 
