@@ -335,7 +335,7 @@ export struct OrderList {
         this.orderList = this.orderList.concat(result.orderList)
       }
       this.hasMore = (this.currentPage + 1) < result.totalPages
-    }).catch(err => {
+    }).catch((err: Error) => {
       ToastUtil.showToast('加载订单失败')
     }).finally(() => {
       this.isLoading = false
@@ -348,7 +348,7 @@ export struct OrderList {
       this.currentPage = 0
       this.orderList = []
       this.loadOrders()
-    }).catch(() => {
+    }).catch((err: Error) => {
       ToastUtil.showToast('取消失败')
     })
   }
