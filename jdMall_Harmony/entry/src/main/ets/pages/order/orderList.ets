@@ -359,7 +359,7 @@ export struct OrderList {
       this.currentPage = 0
       this.orderList = []
       this.loadOrders()
-    }).catch(() => {
+    }).catch((err: Error) => {
       ToastUtil.showToast('支付失败')
     })
   }
@@ -370,7 +370,7 @@ export struct OrderList {
       this.currentPage = 0
       this.orderList = []
       this.loadOrders()
-    }).catch(() => {
+    }).catch((err: Error) => {
       ToastUtil.showToast('操作失败')
     })
   }
@@ -379,7 +379,7 @@ export struct OrderList {
     deleteOrder(this.userId, order.id).then(() => {
       ToastUtil.showToast('订单已删除')
       this.orderList = this.orderList.filter(o => o.id !== order.id)
-    }).catch(() => {
+    }).catch((err: Error) => {
       ToastUtil.showToast('删除失败')
     })
   }
