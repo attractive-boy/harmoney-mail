@@ -30,14 +30,19 @@ public class GoodsController {
         String sort = body.get("sort") == null ? null : body.get("sort").toString();
         PageRequest pageable = PageRequest.of(Math.max(pageNo - 1, 0), pageSize, resolveSort(strategy, sort));
         Page<Goods> page;
+        
         if (code == null || code.isEmpty()) {
-            page = repository.findAll(pageable);
+            // 首页：type=2 的商品排在最前面
+            page = repository.findAllWithType2First(PageRequest.of(Math.max(pageNo - 1, 0), pageSize));
         } else {
-            page = repository.findByCategoryCode(code, pageable);
+            // 分类页：过滤掉 type=2 的推广商品
+            page = repository.findByCategoryCodeAndTypeNot(code, "2", pageable);
             if (page.getTotalElements() == 0) {
-                page = repository.findAll(pageable);
+                // 如果该分类没有商品，显示其他分类的普通商品（仍过滤 type=2）
+                page = repository.findByTypeNot("2", pageable);
             }
         }
+        
         Map<String, Object> data = new HashMap<>();
         List<Goods> list = page.getContent();
         data.put("goodsList", list);
@@ -96,7 +101,8 @@ public class GoodsController {
         }
         
         PageRequest pageable = PageRequest.of(Math.max(pageNo - 1, 0), pageSize, resolveSort(null, sort));
-        Page<Goods> page = repository.searchByKeyword(keyword.trim(), pageable);
+        // 搜索结果排除 type=2 的推广商品
+        Page<Goods> page = repository.searchByKeywordExcludeType2(keyword.trim(), pageable);
         
         Map<String, Object> data = new HashMap<>();
         List<Goods> list = page.getContent();

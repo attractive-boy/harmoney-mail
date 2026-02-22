@@ -1,13 +1,29 @@
 import { CommodityList, FloatingBackTop, StepperComponent, StyleConstants } from "@ohos/common"
 import { ImageKnifeView } from '@ohos/common'
-import { AppUtil, DisplayUtil, WindowUtil } from "@pura/harmony-utils"
-import { GoodsInfo, queryCartGoodsList, StoreGoodsInfo } from '../../service/cartService'
+import { AppUtil, DisplayUtil, ToastUtil, WindowUtil } from "@pura/harmony-utils"
+import {
+  clearCart,
+  GoodsInfo,
+  queryCartGoodsList,
+  removeCartItem,
+  removeCartItems,
+  selectAllItems,
+  selectStoreItems,
+  StoreGoodsInfo,
+  updateCartItem
+} from '../../service/cartService'
 
 @Component
 export struct Cart {
   @State totalInfoHeight: number = 0 //58,0
   @State showBackTop: boolean = false
   @State cartStoreGoodsList: StoreGoodsInfo[] = []
+  @State totalAmount: number = 0
+  @State selectedCount: number = 0
+  @State allSelected: boolean = false
+  @State userId: string = 'guest'
+
+  @StorageProp('safeBottom') safeBottom: number = 0
 
   private scrollScroller: Scroller = new Scroller()
   private probablyLikeScroller = new Scroller()
@@ -15,6 +31,8 @@ export struct Cart {
   goodsItemWidth = (DisplayUtil.getWidth() - 30) / 2
 
   aboutToAppear() {
+    const storedUser = AppStorage.Get<string>('userAccount')
+    this.userId = storedUser ? storedUser : 'guest'
     this.queryCartGoods()
   }
 
@@ -24,7 +42,11 @@ export struct Cart {
         this.AddressHeader()
         Scroll(this.scrollScroller) {
           Column() {
-            this.CartGoodsList()
+            if (this.cartStoreGoodsList.length > 0) {
+              this.CartGoodsList()
+            } else {
+              this.EmptyCart()
+            }
             this.ProbablyLike()
           }
         }
@@ -34,7 +56,7 @@ export struct Cart {
         .width(StyleConstants.FULL_WIDTH)
         .height(`calc(100% - (${40 + this.totalInfoHeight + this.getUIContext().px2vp(AppUtil.getStatusBarHeight())}vp))`)
 
-        // this.TotalInfo()
+        this.TotalInfo()
       }
       .backgroundColor('#F1F1F1')
       .width(StyleConstants.FULL_WIDTH)
@@ -54,6 +76,14 @@ export struct Cart {
           .fontColor(Color.Black)
           .fontWeight(FontWeight.Medium)
           .fontSize(StyleConstants.FONT_SIZE_TWENTY)
+        Blank()
+        Text('清空')
+          .fontSize(12)
+          .fontColor('#E53935')
+          .onClick(() => {
+            this.handleClearCart()
+          })
+          .padding({ left: 12, right: 12, top: 6, bottom: 6 })
       }
       .height(40)
       .width(StyleConstants.FULL_WIDTH)
@@ -73,6 +103,10 @@ export struct Cart {
         Image(info.select ? $r('app.media.selector_check_true') : $r('app.media.selector_check_false'))
           .width(18)
           .height(18)
+          .onClick(() => {
+            const next = !info.select
+            this.toggleStoreSelect(info, next)
+          })
       }
       .width(45)
       .alignItems(HorizontalAlign.Center)
@@ -110,6 +144,10 @@ export struct Cart {
                   Image(goodsItem.select ? $r('app.media.selector_check_true') : $r('app.media.selector_check_false'))
                     .width(18)
                     .height(18)
+                    .onClick(() => {
+                      const next = !goodsItem.select
+                      this.toggleItemSelect(item, goodsItem, next)
+                    })
                 }
                 .width(45)
                 .alignItems(HorizontalAlign.Center)
@@ -126,8 +164,7 @@ export struct Cart {
 
                 Column() {
                   Text(goodsItem.description)
-                    .maxLines(2)
-                    .wordBreak(WordBreak.BREAK_ALL)
+                    .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                     .fontColor('#777677')
                     .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
@@ -147,17 +184,39 @@ export struct Cart {
                       .fontSize(StyleConstants.FONT_SIZE_EIGHTEEN)
 
                     StepperComponent({
-                      initialValue: 1,
+                      initialValue: goodsItem.num,
                       min: 1,
                       max: 9999,
                       step: 1,
                       onChange: (val: number) => {
+                        this.updateItemNum(goodsItem, val)
                       }
                     })
                   }
                   .width(StyleConstants.FULL_WIDTH)
                   .justifyContent(FlexAlign.SpaceBetween)
                   .margin({top: 6})
+
+                  Row() {
+                    this.StatusChip('暂存', goodsItem.saved, () => {
+                      this.toggleItemFlag(goodsItem, 'saved')
+                    })
+                    this.StatusChip('收藏', goodsItem.favorite, () => {
+                      this.toggleItemFlag(goodsItem, 'favorite')
+                    })
+                    this.StatusChip('对比', goodsItem.compare, () => {
+                      this.toggleItemFlag(goodsItem, 'compare')
+                    })
+                    Blank()
+                    Text('删除')
+                      .fontSize(11)
+                      .fontColor('#E53935')
+                      .onClick(() => {
+                        this.removeSingleItem(goodsItem)
+                      })
+                  }
+                  .width(StyleConstants.FULL_WIDTH)
+                  .margin({ top: 8 })
                 }
                 .width(`calc(100% - 125vp)`)
                 .padding({left: 6, right: 6})
@@ -172,7 +231,7 @@ export struct Cart {
             .border({radius: { bottomLeft: index + 1 == item.goodsList.length ? 10 : 0, bottomRight: index + 1 == item.goodsList.length ? 10 : 0 }})
             .margin({left: 10, right: 10, bottom: index + 1 != item.goodsList.length ? 0 : (parentIndex + 1 !=  this.cartStoreGoodsList.length ? 12 : 0)})
 
-          },(goodsItem: GoodsInfo) => goodsItem.code)
+          },(goodsItem: GoodsInfo) => goodsItem.id.toString())
         }
         .width(StyleConstants.FULL_WIDTH)
       },(item: StoreGoodsInfo) => item.storeCode)
@@ -202,12 +261,86 @@ export struct Cart {
   @Builder
   TotalInfo() {
     Row() {
+      Row() {
+        Image(this.allSelected ? $r('app.media.selector_check_true') : $r('app.media.selector_check_false'))
+          .width(18)
+          .height(18)
+        Text('全选')
+          .fontSize(12)
+          .fontColor('#333333')
+          .margin({ left: 6 })
+      }
+      .width(80)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => {
+        this.toggleSelectAll(!this.allSelected)
+      })
 
+      Column() {
+        Text(`合计 ￥${this.totalAmount.toFixed(2)}`)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#E53935')
+        Text(`已选${this.selectedCount}件`)
+          .fontSize(11)
+          .fontColor('#999999')
+          .margin({ top: 2 })
+      }
+      .layoutWeight(1)
+
+      Text('删除')
+        .fontSize(12)
+        .fontColor('#666666')
+        .margin({ right: 10 })
+        .onClick(() => {
+          this.removeSelectedItems()
+        })
+
+      Button() {
+        Text(`去结算(${this.selectedCount})`)
+          .fontSize(12)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Medium)
+      }
+      .height(36)
+      .backgroundColor('#E53935')
+      .borderRadius(18)
+      .padding({ left: 12, right: 12 })
     }
-    .height(this.totalInfoHeight)
+    .height(50 + this.safeBottom)
     .width(StyleConstants.FULL_WIDTH)
+    .padding({ left: 12, right: 12, bottom: this.safeBottom })
+    .alignItems(VerticalAlign.Center)
     .backgroundColor(Color.White)
-    .border({width: { bottom: 1, top: 1 }, color: '#EAEAEA'})
+    .border({ width: { bottom: 1, top: 1 }, color: '#EAEAEA' })
+  }
+
+  @Builder
+  StatusChip(text: string, active: boolean, onClick: () => void) {
+    Text(text)
+      .fontSize(10)
+      .fontColor(active ? Color.White : '#666666')
+      .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+      .borderRadius(10)
+      .backgroundColor(active ? '#E53935' : '#F1F1F1')
+      .margin({ right: 6 })
+      .onClick(onClick)
+  }
+
+  @Builder
+  EmptyCart() {
+    Column() {
+      Text('购物车空空如也')
+        .fontSize(14)
+        .fontColor('#999999')
+        .margin({ top: 30 })
+      Text('去挑点喜欢的吧')
+        .fontSize(12)
+        .fontColor('#BBBBBB')
+        .margin({ top: 6, bottom: 20 })
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .alignItems(HorizontalAlign.Center)
   }
 
   @Builder
@@ -223,8 +356,147 @@ export struct Cart {
   }
 
   queryCartGoods() {
-    queryCartGoodsList().then(list => {
+    queryCartGoodsList(this.userId).then(list => {
       this.cartStoreGoodsList = list || []
+      this.updateTotals()
+    })
+  }
+
+  private handleClearCart() {
+    clearCart(this.userId).then(() => {
+      this.cartStoreGoodsList = []
+      this.updateTotals()
+      ToastUtil.showToast('购物车已清空')
+    })
+  }
+
+  private updateTotals() {
+    let total = 0
+    let count = 0
+    let allSelected = true
+    let hasItem = false
+    this.cartStoreGoodsList.forEach(store => {
+      let storeSelected = true
+      store.goodsList.forEach(item => {
+        hasItem = true
+        if (item.select) {
+          count += item.num
+          const price = Number(item.price || 0)
+          total += price * item.num
+        } else {
+          allSelected = false
+          storeSelected = false
+        }
+      })
+      store.select = store.goodsList.length > 0 && storeSelected
+      if (!store.select) {
+        allSelected = false
+      }
+    })
+    if (!hasItem) {
+      allSelected = false
+    }
+    this.totalAmount = total
+    this.selectedCount = count
+    this.allSelected = allSelected
+  }
+
+  private toggleItemSelect(store: StoreGoodsInfo, item: GoodsInfo, selected: boolean) {
+    item.select = selected
+    updateCartItem({ userId: this.userId, itemId: item.id, selected: selected }).catch(() => {
+      item.select = !selected
+    }).finally(() => {
+      this.updateTotals()
+    })
+  }
+
+  private toggleStoreSelect(store: StoreGoodsInfo, selected: boolean) {
+    store.select = selected
+    store.goodsList.forEach(item => {
+      item.select = selected
+    })
+    selectStoreItems(this.userId, store.storeCode, selected).catch(() => {
+      store.select = !selected
+      store.goodsList.forEach(item => {
+        item.select = !selected
+      })
+    }).finally(() => {
+      this.updateTotals()
+    })
+  }
+
+  private toggleSelectAll(selected: boolean) {
+    this.allSelected = selected
+    this.cartStoreGoodsList.forEach(store => {
+      store.select = selected
+      store.goodsList.forEach(item => {
+        item.select = selected
+      })
+    })
+    selectAllItems(this.userId, selected).catch(() => {
+      this.allSelected = !selected
+      this.cartStoreGoodsList.forEach(store => {
+        store.select = !selected
+        store.goodsList.forEach(item => {
+          item.select = !selected
+        })
+      })
+    }).finally(() => {
+      this.updateTotals()
+    })
+  }
+
+  private updateItemNum(item: GoodsInfo, num: number) {
+    item.num = num
+    updateCartItem({ userId: this.userId, itemId: item.id, num: num }).finally(() => {
+      this.updateTotals()
+    })
+  }
+
+  private toggleItemFlag(item: GoodsInfo, flag: 'saved' | 'favorite' | 'compare') {
+    if (flag === 'saved') {
+      item.saved = !item.saved
+      updateCartItem({ userId: this.userId, itemId: item.id, saved: item.saved })
+      return
+    }
+    if (flag === 'favorite') {
+      item.favorite = !item.favorite
+      updateCartItem({ userId: this.userId, itemId: item.id, favorite: item.favorite })
+      return
+    }
+    item.compare = !item.compare
+    updateCartItem({ userId: this.userId, itemId: item.id, compare: item.compare })
+  }
+
+  private removeSingleItem(item: GoodsInfo) {
+    removeCartItem(this.userId, item.id).then(() => {
+      this.cartStoreGoodsList.forEach(store => {
+        store.goodsList = store.goodsList.filter(g => g.id !== item.id)
+      })
+      this.cartStoreGoodsList = this.cartStoreGoodsList.filter(store => store.goodsList.length > 0)
+      this.updateTotals()
+    })
+  }
+
+  private removeSelectedItems() {
+    const ids: number[] = []
+    this.cartStoreGoodsList.forEach(store => {
+      store.goodsList.forEach(item => {
+        if (item.select) {
+          ids.push(item.id)
+        }
+      })
+    })
+    if (ids.length === 0) {
+      ToastUtil.showToast('请选择要删除的商品')
+      return
+    }
+    removeCartItems(this.userId, ids).then(() => {
+      this.cartStoreGoodsList.forEach(store => {
+        store.goodsList = store.goodsList.filter(item => !item.select)
+      })
+      this.cartStoreGoodsList = this.cartStoreGoodsList.filter(store => store.goodsList.length > 0)
+      this.updateTotals()
     })
   }
 

@@ -31,6 +31,10 @@
     {
       "name": "common_header_bg",
       "value": "#EA3931"
+    },
+    {
+      "name": "theme_color",
+      "value": "#E6001B"
     }
   ]
 }

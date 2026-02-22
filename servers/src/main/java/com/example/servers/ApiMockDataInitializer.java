@@ -10,10 +10,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Random;
 
-import com.example.servers.cart.CartItem;
-import com.example.servers.cart.CartItemRepository;
-import com.example.servers.cart.Store;
-import com.example.servers.cart.StoreRepository;
 import com.example.servers.category.Category;
 import com.example.servers.category.CategoryRepository;
 import com.example.servers.goods.Goods;
@@ -47,8 +43,6 @@ public class ApiMockDataInitializer implements CommandLineRunner {
     private final GoodsRepository goodsRepository;
     private final MineFunctionRepository mineFunctionRepository;
     private final MineTabRepository mineTabRepository;
-    private final StoreRepository storeRepository;
-    private final CartItemRepository cartItemRepository;
     private final Random random = new Random();
 
     public ApiMockDataInitializer(HomeBannerRepository homeBannerRepository,
@@ -58,9 +52,7 @@ public class ApiMockDataInitializer implements CommandLineRunner {
                                   CategoryRepository categoryRepository,
                                   GoodsRepository goodsRepository,
                                   MineFunctionRepository mineFunctionRepository,
-                                  MineTabRepository mineTabRepository,
-                                  StoreRepository storeRepository,
-                                  CartItemRepository cartItemRepository) {
+                                  MineTabRepository mineTabRepository) {
         this.homeBannerRepository = homeBannerRepository;
         this.homeConfigRepository = homeConfigRepository;
         this.homeNineMenuRepository = homeNineMenuRepository;
@@ -69,26 +61,135 @@ public class ApiMockDataInitializer implements CommandLineRunner {
         this.goodsRepository = goodsRepository;
         this.mineFunctionRepository = mineFunctionRepository;
         this.mineTabRepository = mineTabRepository;
-        this.storeRepository = storeRepository;
-        this.cartItemRepository = cartItemRepository;
     }
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        Path apiRoot = Paths.get("../jdMall_Harmony/mock_server/api").toAbsolutePath().normalize();
-        if (!Files.exists(apiRoot)) {
+        // 检查数据库是否已有数据
+        if (goodsRepository.count() > 0 && homeBannerRepository.count() > 0) {
+            System.out.println("数据库已有数据，跳过初始化");
             return;
         }
-        ObjectMapper mapper = new ObjectMapper();
-        importHome(apiRoot, mapper);
-        importCategory(apiRoot, mapper);
-        importCategoryContent(apiRoot, mapper);
-        importGoods(apiRoot, mapper);
-        backfillGoodsStats();
-        importMine(apiRoot, mapper);
-        importCart(apiRoot, mapper);
-        importMaybeLike(apiRoot, mapper);
+
+        // 尝试从 mock_server 导入（如果存在）
+        Path apiRoot = Paths.get("../jdMall_Harmony/mock_server/api").toAbsolutePath().normalize();
+        if (Files.exists(apiRoot)) {
+            System.out.println("从 mock_server 导入数据...");
+            ObjectMapper mapper = new ObjectMapper();
+            importHome(apiRoot, mapper);
+            importCategory(apiRoot, mapper);
+            importCategoryContent(apiRoot, mapper);
+            importGoods(apiRoot, mapper);
+            backfillGoodsStats();
+            importMine(apiRoot, mapper);
+            importMaybeLike(apiRoot, mapper);
+        } else {
+            // mock_server 不存在时，创建基础示例数据
+            System.out.println("mock_server 目录不存在，创建基础示例数据...");
+            createBasicData();
+        }
+    }
+
+    private void createBasicData() {
+        // 创建首页 Banner
+        if (homeBannerRepository.count() == 0) {
+            HomeBanner banner1 = new HomeBanner();
+            banner1.setImgUrl("https://via.placeholder.com/750x300/EA3931/FFFFFF?text=Welcome");
+            banner1.setType("1");
+            homeBannerRepository.save(banner1);
+
+            HomeBanner banner2 = new HomeBanner();
+            banner2.setImgUrl("https://via.placeholder.com/750x300/FF6B6B/FFFFFF?text=Sale");
+            banner2.setType("1");
+            homeBannerRepository.save(banner2);
+        }
+
+        // 创建九宫格菜单
+        if (homeNineMenuRepository.count() == 0) {
+            String[] menuItems = {"手机", "电脑", "家电", "服装", "美妆", "食品", "图书", "运动", "家居"};
+            for (int i = 0; i < menuItems.length; i++) {
+                HomeNineMenu menu = new HomeNineMenu();
+                menu.setMenuName(menuItems[i]);
+                menu.setMenuIcon("https://via.placeholder.com/100/EA3931/FFFFFF?text=" + menuItems[i]);
+                menu.setMenuCode("menu_" + i);
+                homeNineMenuRepository.save(menu);
+            }
+        }
+
+        // 创建首页 Tab
+        if (homeTabRepository.count() == 0) {
+            String[] tabs = {"推荐", "手机", "电脑", "家电", "服装"};
+            for (String tab : tabs) {
+                HomeTab homeTab = new HomeTab();
+                homeTab.setName(tab);
+                homeTab.setCode(tab.toLowerCase());
+                homeTabRepository.save(homeTab);
+            }
+        }
+
+        // 创建分类
+        if (categoryRepository.count() == 0) {
+            String[] categories = {"手机通讯", "电脑数码", "家用电器", "服饰鞋包", "美妆个护"};
+            for (int i = 0; i < categories.length; i++) {
+                Category category = new Category();
+                category.setName(categories[i]);
+                category.setCode("cat_" + i);
+                category.setIconUrl("https://via.placeholder.com/100/EA3931/FFFFFF?text=" + categories[i]);
+                categoryRepository.save(category);
+            }
+        }
+
+        // 创建示例商品
+        if (goodsRepository.count() == 0) {
+            Random rand = new Random();
+            String[] products = {
+                "华为 Mate 60 Pro 5G手机", "Apple iPhone 15 Pro Max", "小米14 Ultra 旗舰手机",
+                "ThinkPad X1 Carbon 商务笔记本", "MacBook Pro 16英寸", "戴尔 XPS 13",
+                "海尔冰箱 双开门", "美的空调 变频节能", "格力空调 静音款",
+                "耐克运动鞋 男款", "阿迪达斯 跑步鞋", "李宁运动服套装"
+            };
+            
+            for (int i = 0; i < products.length; i++) {
+                Goods goods = new Goods();
+                goods.setCategoryCode("cat_" + (i % 5));
+                goods.setDescription(products[i]);
+                goods.setImgUrl("https://via.placeholder.com/400/EA3931/FFFFFF?text=Product+" + (i + 1));
+                goods.setPrice(String.valueOf((rand.nextInt(50) + 10) * 100)); // 1000-6000
+                goods.setType(String.valueOf(i % 5 + 1));
+                goods.setSalesCount(100 + rand.nextInt(5000));
+                goods.setRating(3.5 + rand.nextDouble() * 1.5);
+                goods.setViewCount(500 + rand.nextInt(20000));
+                goods.setCreatedAt(Instant.now().minus(Duration.ofDays(rand.nextInt(90))));
+                goods.setRecommend(i < 4); // 前4个设为推荐
+                goodsRepository.save(goods);
+            }
+        }
+
+        // 创建"我的"页面功能菜单
+        if (mineFunctionRepository.count() == 0) {
+            String[] functions = {"我的订单", "我的红包", "我的优惠券", "收货地址", "联系客服", "意见反馈"};
+            for (int i = 0; i < functions.length; i++) {
+                MineFunction func = new MineFunction();
+                func.setMenuName(functions[i]);
+                func.setMenuIcon("https://via.placeholder.com/50/EA3931/FFFFFF?text=" + i);
+                func.setMenuCode("func_" + i);
+                mineFunctionRepository.save(func);
+            }
+        }
+
+        // 创建"我的"页面 Tab
+        if (mineTabRepository.count() == 0) {
+            String[] tabs = {"待付款", "待发货", "待收货", "待评价", "退换货"};
+            for (int i = 0; i < tabs.length; i++) {
+                MineTab mineTab = new MineTab();
+                mineTab.setName(tabs[i]);
+                mineTab.setCode("tab_" + i);
+                mineTabRepository.save(mineTab);
+            }
+        }
+
+        System.out.println("基础示例数据创建完成！");
     }
 
     private void backfillGoodsStats() {
@@ -309,44 +410,6 @@ public class ApiMockDataInitializer implements CommandLineRunner {
                 t.setName(n.path("name").asText(null));
                 t.setCode(n.path("code").asText(null));
                 mineTabRepository.save(t);
-            }
-        }
-    }
-
-    private void importCart(Path apiRoot, ObjectMapper mapper) throws IOException {
-        if (storeRepository.count() > 0 || cartItemRepository.count() > 0) {
-            return;
-        }
-        Path cartPath = apiRoot.resolve("cart/queryCartGoodsList.json");
-        if (!Files.exists(cartPath)) {
-            return;
-        }
-        JsonNode root = mapper.readTree(Files.readString(cartPath, StandardCharsets.UTF_8));
-        JsonNode list = root.path("data");
-        if (!list.isArray()) {
-            return;
-        }
-        for (JsonNode s : list) {
-            Store store = new Store();
-            store.setStoreName(s.path("storeName").asText(null));
-            store.setStoreCode(s.path("storeCode").asText(null));
-            store.setH5url(s.path("h5url").asText(null));
-            store = storeRepository.save(store);
-            JsonNode goodsList = s.path("goodsList");
-            if (goodsList.isArray()) {
-                for (JsonNode n : goodsList) {
-                    CartItem item = new CartItem();
-                    item.setStore(store);
-                    item.setCode(n.path("code").asText(null));
-                    item.setImgUrl(n.path("imgUrl").asText(null));
-                    item.setDescription(n.path("description").asText(null));
-                    item.setPrice(n.path("price").asText(null));
-                    item.setColor(n.path("color").asText(null));
-                    item.setSize(n.path("size").asText(null));
-                    item.setNum(n.path("num").isNumber() ? n.path("num").intValue() : 1);
-                    item.setSelected(n.path("select").asBoolean(true));
-                    cartItemRepository.save(item);
-                }
             }
         }
     }

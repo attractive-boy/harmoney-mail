@@ -1,6 +1,8 @@
 import router from '@ohos.router'
 import { StyleConstants } from '@ohos/common'
 import { ImageKnifeView } from '@ohos/common'
+import { ToastUtil } from '@pura/harmony-utils'
+import { addToCart } from '../../service/cartService'
 import { queryGoodsDetail, queryStoreGoodsList, GoodsInfo } from '../../service/detailService'
 
 @Entry
@@ -30,42 +32,47 @@ export struct Detail {
   }
 
   build() {
-    Column() {
-      this.Header()
-      Scroll() {
-        Column() {
-          if (this.isLoading) {
-            Text('加载中...')
-              .fontSize(14)
-              .fontColor('#666666')
-              .padding(12)
-          } else if (this.loadError) {
-            Text(this.loadError)
-              .fontSize(14)
-              .fontColor('#666666')
-              .padding(12)
-          } else if (this.goods) {
-            this.CarouselSection()
-            this.PriceSection()
-            this.PromoTabsSection()
-            this.TitleDescSection()
-            this.SpecificationSection()
-            this.DeliverySection()
-            this.ServiceSection()
-            this.QuestionsSection()
-            this.StoreSection()
-            this.RecommendSection()
+    Stack({ alignContent: Alignment.Bottom }) {
+      Column() {
+        this.Header()
+        Scroll() {
+          Column() {
+            if (this.isLoading) {
+              Text('加载中...')
+                .fontSize(14)
+                .fontColor('#666666')
+                .padding(12)
+            } else if (this.loadError) {
+              Text(this.loadError)
+                .fontSize(14)
+                .fontColor('#666666')
+                .padding(12)
+            } else if (this.goods) {
+              this.CarouselSection()
+              this.PriceSection()
+              this.PromoTabsSection()
+              this.TitleDescSection()
+              this.SpecificationSection()
+              this.DeliverySection()
+              this.ServiceSection()
+              this.QuestionsSection()
+              this.StoreSection()
+              this.RecommendSection()
+            }
           }
+          .padding({ bottom: 70 + this.safeBottom })
         }
-        .padding({ bottom: 70 + this.safeBottom })
+        .layoutWeight(1)
+        .backgroundColor('#F5F5F5')
       }
+      .width(StyleConstants.FULL_WIDTH)
+      .height(StyleConstants.FULL_HEIGHT)
       .backgroundColor('#F5F5F5')
 
       this.ActionBar()
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .backgroundColor('#F5F5F5')
   }
 
   @Builder
@@ -144,7 +151,35 @@ export struct Detail {
 
   @Builder
   PriceSection() {
-    Column() {
+    if (!this.goods?.price || this.goods.price === '' || this.goods.price === '0') {
+      // type=2 的推广类商品，没有价格
+      Column() {
+        Row() {
+          Column() {
+            Text('活动商品')
+              .fontSize(18)
+              .fontColor('#E53935')
+              .fontWeight(FontWeight.Bold)
+            Text('点击查看活动详情')
+              .fontSize(12)
+              .fontColor('#999999')
+              .margin({ top: 4 })
+          }
+          Blank()
+          Button('进入活动')
+            .fontSize(12)
+            .fontColor(Color.White)
+            .backgroundColor('#E53935')
+            .height(32)
+            .padding({ left: 16, right: 16 })
+        }
+        .padding(12)
+        .width(StyleConstants.FULL_WIDTH)
+        .alignItems(VerticalAlign.Center)
+      }
+      .backgroundColor(Color.White)
+    } else {
+      Column() {
       // 大价格区域
       Column() {
         Row() {
@@ -207,6 +242,7 @@ export struct Detail {
       .width(StyleConstants.FULL_WIDTH)
       .backgroundColor(Color.White)
       .margin({ top: 1 })
+      }
     }
   }
 
@@ -597,35 +633,63 @@ export struct Detail {
       .width(50)
       .justifyContent(FlexAlign.Center)
 
-      Button() {
-        Text('加入购物车')
-          .fontSize(12)
-          .fontColor(Color.White)
-          .fontWeight(FontWeight.Medium)
-      }
-      .height(36)
-      .backgroundColor('#FF9F2E')
-      .borderRadius(4)
-      .layoutWeight(1)
-      .margin({ left: 6, right: 4 })
+      // 判断是否有价格
+      if (!this.goods?.price || this.goods.price === '' || this.goods.price === '0') {
+        // 推广类商品，只显示"进入活动"按钮
+        Button() {
+          Text('进入活动页面')
+            .fontSize(14)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Medium)
+        }
+        .height(40)
+        .backgroundColor('#E53935')
+        .borderRadius(20)
+        .layoutWeight(1)
+        .margin({ left: 10, right: 10 })
+        .onClick(() => {
+          ToastUtil.showToast('跳转到活动页面')
+        })
+      } else {
+        // 普通商品，显示加购和立即购买
+        Button() {
+          Text('加入购物车')
+            .fontSize(12)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Medium)
+        }
+        .height(36)
+        .backgroundColor('#FF9F2E')
+        .borderRadius(4)
+        .layoutWeight(1)
+        .margin({ left: 6, right: 4 })
+        .onClick(() => {
+          this.handleAddToCart(false)
+        })
 
-      Button() {
-        Text('立即购买')
-          .fontSize(12)
-          .fontColor(Color.White)
-          .fontWeight(FontWeight.Medium)
+        Button() {
+          Text('立即购买')
+            .fontSize(12)
+            .fontColor(Color.White)
+            .fontWeight(FontWeight.Medium)
+        }
+        .height(36)
+        .backgroundColor('#E53935')
+        .borderRadius(4)
+        .layoutWeight(1)
+        .margin({ left: 4, right: 6 })
+        .onClick(() => {
+          this.handleAddToCart(true)
+        })
       }
-      .height(36)
-      .backgroundColor('#E53935')
-      .borderRadius(4)
-      .layoutWeight(1)
-      .margin({ left: 4, right: 6 })
     }
     .width('100%')
-    .height(48)
+    .height(48 + this.safeBottom)
     .alignItems(VerticalAlign.Center)
     .padding({ left: 8, right: 8, bottom: this.safeBottom })
     .backgroundColor(Color.White)
+    .shadow({ radius: 8, color: '#00000020', offsetY: -2 })
+    .zIndex(999)
   }
 
   private loadDetail() {
@@ -648,6 +712,30 @@ export struct Detail {
       this.storeGoods = res?.goodsList || []
     }).catch(() => {
       this.storeGoods = []
+    })
+  }
+
+  private handleAddToCart(buyNow: boolean) {
+    if (!this.goodsId) {
+      ToastUtil.showToast('商品信息缺失')
+      return
+    }
+    const userId = AppStorage.Get<string>('userAccount') || 'guest'
+    addToCart({
+      userId: userId,
+      goodsId: this.goodsId,
+      num: 1,
+      color: '默认',
+      size: '默认',
+      selected: true,
+      storeCode: 'default',
+      storeName: this.goods?.storeName || '官方自营'
+    }).then(() => {
+      ToastUtil.showToast(buyNow ? '已加入购物车，前往结算' : '已加入购物车')
+      if (buyNow) {
+        AppStorage.SetOrCreate<number>('tabIndex', 2)
+        router.pushUrl({ url: 'pages/Index' })
+      }
     })
   }
 }

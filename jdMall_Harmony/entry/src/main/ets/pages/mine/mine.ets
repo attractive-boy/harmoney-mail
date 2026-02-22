@@ -136,13 +136,28 @@ export struct Mine {
           Button() {
             Text(this.userAccount ? '退出登录' : '注册/登录')
               .fontSize(12)
+              .fontWeight(FontWeight.Medium)
               .fontColor(Color.White)
           }
-          .height(28)
-          .padding({left: 12, right: 12})
-          .backgroundColor('#EC5F5A')
-          .borderRadius(14)
-          .margin({top: 8})
+          .height(30)
+          .padding({left: 16, right: 16})
+          .backgroundColor($r('app.color.theme_color'))
+          .borderRadius(15)
+          .margin({top: 10})
+          .shadow({
+            radius: 8,
+            color: 'rgba(230, 0, 18, 0.25)',
+            offsetX: 0,
+            offsetY: 2
+          })
+          .stateStyles({
+            normal: {
+              .scale({ x: 1.0, y: 1.0 })
+            },
+            pressed: {
+              .scale({ x: 0.95, y: 0.95 })
+            }
+          })
           .onClick(() => {
             if (this.userAccount) {
               AppStorage.setOrCreate('userToken', '')

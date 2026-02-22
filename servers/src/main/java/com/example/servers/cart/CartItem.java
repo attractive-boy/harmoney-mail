@@ -21,6 +21,10 @@ public class CartItem {
     @JoinColumn(name = "store_id")
     private Store store;
 
+    @ManyToOne
+    @JoinColumn(name = "cart_id")
+    private Cart cart;
+
     @Column
     private String code;
 
@@ -45,6 +49,15 @@ public class CartItem {
     @Column
     private Boolean selected;
 
+    @Column
+    private Boolean saved;
+
+    @Column
+    private Boolean favorite;
+
+    @Column
+    private Boolean compare;
+
     public Long getId() {
         return id;
     }
@@ -59,6 +72,14 @@ public class CartItem {
 
     public void setStore(Store store) {
         this.store = store;
+    }
+
+    public Cart getCart() {
+        return cart;
+    }
+
+    public void setCart(Cart cart) {
+        this.cart = cart;
     }
 
     public String getCode() {
@@ -123,5 +144,29 @@ public class CartItem {
 
     public void setSelected(Boolean selected) {
         this.selected = selected;
+    }
+
+    public Boolean getSaved() {
+        return saved;
+    }
+
+    public void setSaved(Boolean saved) {
+        this.saved = saved;
+    }
+
+    public Boolean getFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(Boolean favorite) {
+        this.favorite = favorite;
+    }
+
+    public Boolean getCompare() {
+        return compare;
+    }
+
+    public void setCompare(Boolean compare) {
+        this.compare = compare;
     }
 }

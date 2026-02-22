@@ -14,6 +14,14 @@ struct Index {
   @StorageProp('safeTop') safeTop: number = 0
   @StorageProp('safeBottom') safeBottom: number = 0
 
+  aboutToAppear() {
+    const storedIndex = AppStorage.Get<number>('tabIndex')
+    if (storedIndex !== undefined && storedIndex !== null) {
+      this.currentIndex = storedIndex
+      this.controller.changeIndex(this.currentIndex)
+    }
+  }
+
   @Builder
   TabBuilder(title: string, targetIndex: number, icon: Resource, selectedIcon: Resource){
     Column(){
@@ -55,6 +63,7 @@ struct Index {
       .barBackgroundColor(Color.White)
       .onChange((index: number) => {
         WindowUtil.setWindowSystemBarProperties({statusBarContentColor: [0, 1].includes(index) ? '#FFFFFF' : '#000000'})
+        AppStorage.SetOrCreate<number>('tabIndex', index)
       })
     }
     .width(StyleConstants.FULL_WIDTH)

@@ -133,21 +133,38 @@ export struct CommodityList {
       .visibility(item.type == '1' ? Visibility.Visible: Visibility.None)
 
       Column(){
-        Text(item.tag)
-          .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
-          .fontColor(Color.White)
-          .borderRadius(18)
-          .padding({left: 8, right: 8, top: 2, bottom: 2})
-          .linearGradient({
-            direction: GradientDirection.Right,
-            colors: [['#D2554F', 0.2],['#D47273', 0.6], ['#D79098', 0.2]]
-          })
-        Text(item.des1).fontSize(StyleConstants.FONT_SIZE_FOURTEEN).fontColor('#EC5F5A').margin({top: 4})
-        Text(item.des2).fontSize(StyleConstants.FONT_SIZE_FOURTEEN).fontColor('#9E9F9E').margin({top: 4})
-        Text('点击进入').fontSize(StyleConstants.FONT_SIZE_TWELVE).fontColor('#EC5F5A').margin({top: 4})
+        if (item.tag) {
+          Text(item.tag)
+            .fontSize(StyleConstants.FONT_SIZE_TWELVE)
+            .fontColor(Color.White)
+            .borderRadius(12)
+            .padding({left: 6, right: 6, top: 1, bottom: 1})
+            .maxLines(1)
+            .textOverflow({overflow: TextOverflow.Ellipsis})
+            .linearGradient({
+              direction: GradientDirection.Right,
+              colors: [['#D2554F', 0.2],['#D47273', 0.6], ['#D79098', 0.2]]
+            })
+        }
+        if (item.des1) {
+          Text(item.des1)
+            .fontSize(StyleConstants.FONT_SIZE_TWELVE)
+            .fontColor('#EC5F5A')
+            .margin({top: 4})
+            .maxLines(1)
+            .textOverflow({overflow: TextOverflow.Ellipsis})
+        }
+        if (item.des2) {
+          Text(item.des2)
+            .fontSize(StyleConstants.FONT_SIZE_TWELVE)
+            .fontColor('#9E9F9E')
+            .margin({top: 4})
+            .maxLines(1)
+            .textOverflow({overflow: TextOverflow.Ellipsis})
+        }
       }
       .width(StyleConstants.FULL_WIDTH)
-      .padding({top: 10, left:6, right: 6, bottom: 12})
+      .padding({top: 8, left:6, right: 6, bottom: 10})
       .alignItems(HorizontalAlign.Start)
       .visibility(item.type == '2' ? Visibility.Visible: Visibility.None)
     }

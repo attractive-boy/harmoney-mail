@@ -10,6 +10,7 @@ export struct Register {
   @State password: string = ''
   @State confirmPassword: string = ''
   @State isSubmitting: boolean = false
+  @StorageProp('safeTop') safeTop: number = 0
 
   build() {
     Column() {
@@ -39,8 +40,8 @@ export struct Register {
         .width(40)
     }
     .width(StyleConstants.FULL_WIDTH)
-    .height(50)
-    .padding({ left: 12, right: 12 })
+    .height(50 + this.safeTop)
+    .padding({ left: 12, right: 12, top: this.safeTop })
     .alignItems(VerticalAlign.Center)
     .backgroundColor(Color.White)
   }
@@ -87,13 +88,30 @@ export struct Register {
       Button() {
         Text(this.isSubmitting ? '注册中...' : '注册')
           .fontSize(16)
+          .fontWeight(FontWeight.Medium)
           .fontColor(Color.White)
       }
       .width('100%')
-      .height(44)
-      .margin({ top: 20 })
-      .backgroundColor('#EC5F5A')
+      .height(48)
+      .margin({ top: 24 })
+      .backgroundColor($r('app.color.theme_color'))
+      .borderRadius(24)
+      .shadow({
+        radius: 16,
+        color: 'rgba(230, 0, 18, 0.3)',
+        offsetX: 0,
+        offsetY: 4
+      })
       .enabled(!this.isSubmitting)
+      .opacity(this.isSubmitting ? 0.6 : 1.0)
+      .stateStyles({
+        normal: {
+          .scale({ x: 1.0, y: 1.0 })
+        },
+        pressed: {
+          .scale({ x: 0.98, y: 0.98 })
+        }
+      })
       .onClick(() => this.onSubmit())
 
       Text('密码至少8位，且同时包含字母与数字')
