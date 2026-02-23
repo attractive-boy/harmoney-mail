@@ -132,21 +132,60 @@ function isSuccess(code: string | number): boolean {
   return ['0', 0, '200', 200].includes(code);
 }
 
+function formatErrorMessage(err: ESObject): string {
+  if (err.message) {
+    return err.message
+  }
+  if (err.code === 'ECONNABORTED') {
+    return '请求超时 - 检查网络连接或后端服务地址'
+  }
+  if (err.code === 'ERR_NETWORK') {
+    return '网络错误 - 无法连接到服务器(192.168.5.10:8091)'
+  }
+  if (err.response?.status === 404) {
+    return 'API不存在 - 检查后端服务'
+  }
+  if (err.response?.status === 500) {
+    return '服务器出错'
+  }
+  return '网络错误: ' + (err.code || '未知错误')
+}
+
 class RequestUtil {
   static get<T = ESObject>(url: string, config?: AxiosRequestConfig): Promise<BaseResponse<T>> {
-    return instance.get<T, BaseResponse<T>>(url, config).then((res) => res);
+    return instance.get<T, BaseResponse<T>>(url, config)
+      .then((res) => res)
+      .catch((err: ESObject) => {
+        const errorMsg = formatErrorMessage(err)
+        return Promise.reject(new Error(errorMsg))
+      });
   }
 
   static post<T = ESObject>(url: string, data?: ESObject, config?: AxiosRequestConfig): Promise<BaseResponse<T>> {
-    return instance.post<T, BaseResponse<T>>(url, data, config).then(res => res);
+    return instance.post<T, BaseResponse<T>>(url, data, config)
+      .then(res => res)
+      .catch((err: ESObject) => {
+        const errorMsg = formatErrorMessage(err)
+        return Promise.reject(new Error(errorMsg))
+      });
   }
 
   static put<T = ESObject>(url: string, data?: ESObject, config?: AxiosRequestConfig): Promise<BaseResponse<T>> {
-    return instance.put<T, BaseResponse<T>>(url, data, config).then(res => res);
+    return instance.put<T, BaseResponse<T>>(url, data, config)
+      .then(res => res)
+      .catch((err: ESObject) => {
+        const errorMsg = formatErrorMessage(err)
+        return Promise.reject(new Error(errorMsg))
+      });
   }
 
   static delete<T = ESObject>(url: string, config?: AxiosRequestConfig): Promise<BaseResponse<T>> {
-    return instance.delete<T, BaseResponse<T>>(url, config).then(res => res)
+    return instance.delete<T, BaseResponse<T>>(url, config)
+      .then(res => res)
+      .catch((err: ESObject) => {
+        const errorMsg = formatErrorMessage(err)
+        return Promise.reject(new Error(errorMsg))
+      });
   }
 }
 

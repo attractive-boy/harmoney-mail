@@ -336,7 +336,9 @@ export struct OrderList {
       }
       this.hasMore = (this.currentPage + 1) < result.totalPages
     }).catch((err: Error) => {
-      ToastUtil.showToast('加载订单失败')
+      const errorMsg = err.message || '加载订单失败'
+      ToastUtil.showToast(errorMsg)
+      console.error('加载订单出错:', err)
     }).finally(() => {
       this.isLoading = false
     })
