@@ -16,7 +16,7 @@ export struct Settlement {
   @State totalAmount: number = 0
   @State selectedCount: number = 0
   @State isLoading: boolean = false
-  @State statusBarHeight: number = 50
+  @State statusBarHeight: number = 0
   @StorageProp('userAccount') userAccount: string = 'guest'
   @StorageProp('safeBottom') safeBottom: number = 0
 
@@ -279,8 +279,8 @@ export struct Settlement {
           .margin({ right: 40 })
       }
       .width(StyleConstants.FULL_WIDTH)
-      .height(44 + this.statusBarHeight)
-      .padding({ top: this.statusBarHeight })
+      .height(44)
+      .padding({ top: this.statusBarHeight, left: 16, right: 16 })
       .backgroundColor(Color.White)
       .alignItems(VerticalAlign.Center)
 
