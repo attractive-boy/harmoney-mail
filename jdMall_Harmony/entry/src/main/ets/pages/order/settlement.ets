@@ -1,5 +1,5 @@
 import { StyleConstants } from '@ohos/common'
-import { AppUtil, ToastUtil, WindowUtil } from '@pura/harmony-utils'
+import { AppUtil, ToastUtil } from '@pura/harmony-utils'
 import router from '@ohos.router'
 import { GoodsInfo, queryCartGoodsList, StoreGoodsInfo } from '../../service/cartService'
 import { createOrder, CreateOrderResult, CreateOrderParams } from '../../service/orderService'
@@ -16,16 +16,21 @@ export struct Settlement {
   @State totalAmount: number = 0
   @State selectedCount: number = 0
   @State isLoading: boolean = false
+  @State statusBarHeight: number = 50
   @StorageProp('userAccount') userAccount: string = 'guest'
   @StorageProp('safeBottom') safeBottom: number = 0
-  
+
   // 收货信息
-  @State receiverName: string = ''
-  @State receiverPhone: string = ''
-  @State receiverAddress: string = ''
+  @State receiverName: string = '张三'
+  @State receiverPhone: string = '13800138000'
+  @State receiverAddress: string = '北京市朝阳区建国路88号SOHO现代城'
   @State remark: string = ''
 
+  // 号码保护开关
+  @State phoneProtected: boolean = true
+
   aboutToAppear() {
+    this.statusBarHeight = AppUtil.getStatusBarHeight()
     this.querySettlementInfo()
   }
 
@@ -35,7 +40,7 @@ export struct Settlement {
         ToastUtil.showToast('购物车中没有已选商品')
         return
       }
-      
+
       this.cartStoreGoodsList = list
       this.calculateTotals()
     }).catch(() => {
@@ -46,7 +51,7 @@ export struct Settlement {
   private calculateTotals() {
     let total = 0
     let count = 0
-    
+
     for (const store of this.cartStoreGoodsList) {
       for (const goods of store.goodsList) {
         if (goods.select) {
@@ -56,7 +61,7 @@ export struct Settlement {
         }
       }
     }
-    
+
     this.totalAmount = total
     this.selectedCount = count
   }
@@ -75,17 +80,24 @@ export struct Settlement {
     return this.parsePrice(price).toFixed(2)
   }
 
+  private getMaskedPhone(phone: string): string {
+    if (phone && phone.length >= 7) {
+      return phone.substring(0, 3) + '****' + phone.substring(7)
+    }
+    return phone
+  }
+
   private async submitOrder() {
     if (!this.receiverName.trim()) {
-      ToastUtil.showToast('请输入收货人名称')
+      ToastUtil.showToast('请添加收货地址')
       return
     }
     if (!this.receiverPhone.trim()) {
-      ToastUtil.showToast('请输入收货人电话')
+      ToastUtil.showToast('请添加收货地址')
       return
     }
     if (!this.receiverAddress.trim()) {
-      ToastUtil.showToast('请输入收货地址')
+      ToastUtil.showToast('请添加收货地址')
       return
     }
     if (this.selectedCount === 0) {
@@ -128,259 +140,495 @@ export struct Settlement {
       })
   }
 
-  build() {
+  @Builder
+  AddressSection() {
     Column() {
-      // 标题栏
       Row() {
-        Text('订单结算')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
+        Text('默认')
+          .fontSize(10)
+          .fontColor(Color.White)
+          .backgroundColor('#E53935')
+          .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+          .borderRadius(2)
+          .margin({ right: 4 })
+
+        Text('家')
+          .fontSize(10)
+          .fontColor(Color.White)
+          .backgroundColor('#4CAF50')
+          .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+          .borderRadius(2)
+          .margin({ right: 8 })
+
+        Text(this.receiverAddress || '请添加收货地址')
+          .fontSize(15)
+          .fontColor('#333333')
+          .fontWeight(FontWeight.Medium)
           .layoutWeight(1)
-          .textAlign(TextAlign.Center)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Image($r('app.media.ic_arrow_right'))
+          .width(14)
+          .height(14)
+          .fillColor('#999999')
+          .margin({ left: 8 })
       }
       .width(StyleConstants.FULL_WIDTH)
-      .height(56)
-      .padding({ left: 12, right: 12 })
+      .padding({ left: 16, right: 16, top: 14, bottom: 8 })
       .alignItems(VerticalAlign.Center)
-      .backgroundColor('#F5F5F5')
+
+      Row() {
+        Text(this.receiverName)
+          .fontSize(14)
+          .fontColor('#333333')
+          .margin({ right: 12 })
+
+        Text(this.getMaskedPhone(this.receiverPhone))
+          .fontSize(14)
+          .fontColor('#999999')
+      }
+      .width(StyleConstants.FULL_WIDTH)
+      .padding({ left: 16, right: 16, bottom: 14 })
+
+      Row()
+        .width(StyleConstants.FULL_WIDTH)
+        .height(1)
+        .backgroundColor('#F0F0F0')
+
+      Row()
+        .width(StyleConstants.FULL_WIDTH)
+        .height(3)
+        .linearGradient({
+          direction: GradientDirection.Right,
+          colors: [['#E53935', 0], ['#FF8A80', 0.5], ['#E53935', 1]]
+        })
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .backgroundColor(Color.White)
+    .onClick(() => {
+      ToastUtil.showToast('地址选择功能开发中')
+    })
+  }
+
+  @Builder
+  InvoiceSection() {
+    Row() {
+      Text('发票')
+        .fontSize(14)
+        .fontColor('#333333')
+
+      Blank()
+
+      Text('数电普票(不开发票-个人) >')
+        .fontSize(13)
+        .fontColor('#999999')
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .height(48)
+    .padding({ left: 16, right: 16 })
+    .backgroundColor(Color.White)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  PhoneProtectSection() {
+    Row() {
+      Text('号码保护（隐藏收件人真实号码）')
+        .fontSize(14)
+        .fontColor('#333333')
+
+      Text(' ⓘ')
+        .fontSize(14)
+        .fontColor('#999999')
+
+      Blank()
+
+      Toggle({ type: ToggleType.Switch, isOn: this.phoneProtected })
+        .selectedColor('#E53935')
+        .onChange((isOn: boolean) => {
+          this.phoneProtected = isOn
+        })
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .height(48)
+    .padding({ left: 16, right: 16 })
+    .backgroundColor(Color.White)
+    .alignItems(VerticalAlign.Center)
+  }
+
+  build() {
+    Column() {
+      // 导航栏
+      Row() {
+        Text('←')
+          .fontSize(20)
+          .fontColor('#333333')
+          .width(40)
+          .textAlign(TextAlign.Center)
+          .onClick(() => {
+            router.back()
+          })
+
+        Text('确认订单')
+          .fontSize(18)
+          .fontColor('#333333')
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+          .margin({ right: 40 })
+      }
+      .width(StyleConstants.FULL_WIDTH)
+      .height(44 + this.statusBarHeight)
+      .padding({ top: this.statusBarHeight })
+      .backgroundColor(Color.White)
+      .alignItems(VerticalAlign.Center)
 
       Scroll() {
         Column() {
-          // 收货信息
-          Column() {
-            Text('收货信息')
-              .fontSize(14)
-              .fontWeight(FontWeight.Bold)
-              .margin({ bottom: 12 })
+          // 地址区域
+          this.AddressSection()
 
-            // 收货人
-            Column() {
-              Text('收货人')
-                .fontSize(12)
-                .fontColor('#999999')
-                .margin({ bottom: 4 })
-              TextInput({ placeholder: '请输入收货人名称', text: this.receiverName })
-                .onChange((value: string) => {
-                  this.receiverName = value
-                })
-                .fontSize(14)
-                .height(40)
-                .padding({ left: 12, right: 12 })
-                .backgroundColor(Color.White)
-                .border({ width: 1, color: '#EAEAEA' })
-                .borderRadius(4)
-            }
+          Row()
             .width(StyleConstants.FULL_WIDTH)
-            .margin({ bottom: 12 })
+            .height(10)
+            .backgroundColor('#F5F5F5')
 
-            // 电话号码
+          // 店铺商品区域
+          ForEach(this.cartStoreGoodsList, (store: StoreGoodsInfo) => {
             Column() {
-              Text('联系电话')
-                .fontSize(12)
-                .fontColor('#999999')
-                .margin({ bottom: 4 })
-              TextInput({ placeholder: '请输入联系电话', text: this.receiverPhone })
-                .onChange((value: string) => {
-                  this.receiverPhone = value
-                })
-                .fontSize(14)
-                .height(40)
-                .padding({ left: 12, right: 12 })
-                .backgroundColor(Color.White)
-                .border({ width: 1, color: '#EAEAEA' })
-                .borderRadius(4)
-                .type(InputType.Number)
-            }
-            .width(StyleConstants.FULL_WIDTH)
-            .margin({ bottom: 12 })
+              // 店铺头部行
+              Row() {
+                Image($r('app.media.ic_store'))
+                  .width(16)
+                  .height(16)
+                  .fillColor('#333333')
+                  .margin({ right: 6 })
 
-            // 收货地址
-            Column() {
-              Text('收货地址')
-                .fontSize(12)
-                .fontColor('#999999')
-                .margin({ bottom: 4 })
-              TextInput({ placeholder: '请输入收货地址', text: this.receiverAddress })
-                .onChange((value: string) => {
-                  this.receiverAddress = value
-                })
-                .fontSize(14)
-                .height(40)
-                .padding({ left: 12, right: 12 })
-                .backgroundColor(Color.White)
-                .border({ width: 1, color: '#EAEAEA' })
-                .borderRadius(4)
-            }
-            .width(StyleConstants.FULL_WIDTH)
-            .margin({ bottom: 12 })
-
-            // 备注
-            Column() {
-              Text('订单备注（可选）')
-                .fontSize(12)
-                .fontColor('#999999')
-                .margin({ bottom: 4 })
-              TextInput({ placeholder: '请输入订单备注', text: this.remark })
-                .onChange((value: string) => {
-                  this.remark = value
-                })
-                .fontSize(14)
-                .height(80)
-                .padding({ left: 12, right: 12, top: 12, bottom: 12 })
-                .backgroundColor(Color.White)
-                .border({ width: 1, color: '#EAEAEA' })
-                .borderRadius(4)
-            }
-            .width(StyleConstants.FULL_WIDTH)
-          }
-          .width(StyleConstants.FULL_WIDTH)
-          .padding(12)
-          .backgroundColor(Color.White)
-          .margin({ bottom: 12 })
-
-          // 订单商品
-          Column() {
-            Text('订单商品')
-              .fontSize(14)
-              .fontWeight(FontWeight.Bold)
-              .margin({ bottom: 12 })
-
-            ForEach(this.cartStoreGoodsList, (store: StoreGoodsInfo) => {
-              Column() {
                 Text(store.storeName || '未知店铺')
-                  .fontSize(12)
-                  .fontColor('#666666')
-                  .margin({ bottom: 12 })
+                  .fontSize(14)
+                  .fontColor('#333333')
+                  .fontWeight(FontWeight.Medium)
+                  .layoutWeight(1)
 
-                ForEach(store.goodsList, (goods: GoodsInfo) => {
-                  if (goods.select) {
+                Image($r('app.media.ic_arrow_right'))
+                  .width(14)
+                  .height(14)
+                  .fillColor('#999999')
+              }
+              .width(StyleConstants.FULL_WIDTH)
+              .height(44)
+              .padding({ left: 16, right: 16 })
+              .alignItems(VerticalAlign.Center)
+
+              Row()
+                .width(StyleConstants.FULL_WIDTH)
+                .height(0.5)
+                .backgroundColor('#F0F0F0')
+
+              // 商品列表
+              ForEach(store.goodsList, (goods: GoodsInfo) => {
+                if (goods.select) {
+                  Column() {
+                    // 商品行
                     Row() {
                       Image(goods.imgUrl)
-                        .width(60)
-                        .height(60)
+                        .width(90)
+                        .height(90)
                         .borderRadius(4)
-                        .backgroundColor('#F0F0F0')
+                        .backgroundColor('#F5F5F5')
+                        .objectFit(ImageFit.Cover)
                         .margin({ right: 12 })
 
                       Column() {
                         Text(goods.description)
-                          .fontSize(12)
+                          .fontSize(14)
                           .fontColor('#333333')
                           .maxLines(2)
                           .textOverflow({ overflow: TextOverflow.Ellipsis })
+                          .lineHeight(20)
                           .margin({ bottom: 4 })
 
-                        if (goods.color) {
-                          Text(`颜色: ${goods.color}`)
-                            .fontSize(11)
+                        if (goods.color || goods.size) {
+                          Text(`${goods.color ? goods.color : ''}${goods.color && goods.size ? ' | ' : ''}${goods.size ? goods.size : ''}`)
+                            .fontSize(12)
                             .fontColor('#999999')
-                            .margin({ bottom: 2 })
+                            .margin({ bottom: 4 })
                         }
 
-                        if (goods.size) {
-                          Text(`尺寸: ${goods.size}`)
-                            .fontSize(11)
+                        Blank()
+
+                        Row() {
+                          Text(`¥${this.getPriceString(goods.price)}`)
+                            .fontSize(16)
+                            .fontColor('#E53935')
+                            .fontWeight(FontWeight.Bold)
+
+                          Blank()
+
+                          Text(`x${goods.num}`)
+                            .fontSize(14)
                             .fontColor('#999999')
-                            .margin({ bottom: 2 })
                         }
+                        .width(StyleConstants.FULL_WIDTH)
                       }
                       .layoutWeight(1)
+                      .height(90)
                       .alignItems(HorizontalAlign.Start)
+                    }
+                    .width(StyleConstants.FULL_WIDTH)
+                    .padding({ left: 16, right: 16, top: 12, bottom: 8 })
+
+                    // 服务标签行
+                    Row() {
+                      Text('支持7天无理由退货')
+                        .fontSize(11)
+                        .fontColor('#E53935')
+                        .backgroundColor('#FFF0F0')
+                        .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                        .borderRadius(2)
+                        .margin({ right: 8 })
+
+                      Text('7天价保')
+                        .fontSize(11)
+                        .fontColor('#E53935')
+                        .backgroundColor('#FFF0F0')
+                        .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                        .borderRadius(2)
+                    }
+                    .width(StyleConstants.FULL_WIDTH)
+                    .padding({ left: 16, right: 16, bottom: 12 })
+
+                    Row()
+                      .width(StyleConstants.FULL_WIDTH)
+                      .height(0.5)
+                      .backgroundColor('#F0F0F0')
+
+                    // 配送行
+                    Row() {
+                      Text('配送')
+                        .fontSize(14)
+                        .fontColor('#999999')
+
+                      Blank()
 
                       Column() {
-                        Text(`￥${this.getPriceString(goods.price)}`)
-                          .fontSize(12)
-                          .fontColor('#E53935')
-                          .fontWeight(FontWeight.Bold)
-                          .margin({ bottom: 4 })
+                        Row() {
+                          Text('快递运输')
+                            .fontSize(14)
+                            .fontColor('#333333')
 
-                        Text(`x${goods.num}`)
-                          .fontSize(11)
+                          Image($r('app.media.ic_arrow_right'))
+                            .width(12)
+                            .height(12)
+                            .fillColor('#999999')
+                            .margin({ left: 2 })
+                        }
+                        .alignItems(VerticalAlign.Center)
+
+                        Text('预计今天发货')
+                          .fontSize(12)
                           .fontColor('#999999')
+                          .margin({ top: 2 })
                       }
                       .alignItems(HorizontalAlign.End)
                     }
                     .width(StyleConstants.FULL_WIDTH)
-                    .padding({ bottom: 12 })
-                    .margin({ bottom: 12 })
+                    .height(52)
+                    .padding({ left: 16, right: 16 })
+                    .alignItems(VerticalAlign.Center)
                   }
-                }, (goods: GoodsInfo) => goods.id.toString())
-              }
-              .width(StyleConstants.FULL_WIDTH)
-            }, (store: StoreGoodsInfo) => store.storeCode)
-          }
-          .width(StyleConstants.FULL_WIDTH)
-          .padding(12)
-          .backgroundColor(Color.White)
-          .margin({ bottom: 12 })
+                  .width(StyleConstants.FULL_WIDTH)
+                }
+              }, (goods: GoodsInfo) => goods.id.toString())
+            }
+            .width(StyleConstants.FULL_WIDTH)
+            .backgroundColor(Color.White)
+          }, (store: StoreGoodsInfo) => store.storeCode)
 
-          // 费用详情
+          Row()
+            .width(StyleConstants.FULL_WIDTH)
+            .height(10)
+            .backgroundColor('#F5F5F5')
+
+          // 价格明细区域
           Column() {
             Row() {
-              Text('商品合计')
-                .fontSize(12)
+              Text('商品金额')
+                .fontSize(14)
                 .fontColor('#666666')
+
               Blank()
-              Text(`￥${this.totalAmount.toFixed(2)}`)
-                .fontSize(12)
+
+              Text(`¥${this.totalAmount.toFixed(2)}`)
+                .fontSize(14)
                 .fontColor('#333333')
             }
             .width(StyleConstants.FULL_WIDTH)
-            .margin({ bottom: 8 })
+            .height(48)
+            .padding({ left: 16, right: 16 })
+            .alignItems(VerticalAlign.Center)
+
+            Row()
+              .width(StyleConstants.FULL_WIDTH)
+              .height(0.5)
+              .backgroundColor('#F0F0F0')
 
             Row() {
               Text('运费')
-                .fontSize(12)
+                .fontSize(14)
                 .fontColor('#666666')
+
               Blank()
-              Text('￥0.00')
-                .fontSize(12)
+
+              Text('¥0.00')
+                .fontSize(14)
                 .fontColor('#333333')
             }
             .width(StyleConstants.FULL_WIDTH)
-            .margin({ bottom: 12 })
-            .padding({ bottom: 12 })
+            .height(48)
+            .padding({ left: 16, right: 16 })
+            .alignItems(VerticalAlign.Center)
 
-            Divider()
-              .margin({ bottom: 12 })
+            Row()
+              .width(StyleConstants.FULL_WIDTH)
+              .height(0.5)
+              .backgroundColor('#F0F0F0')
 
             Row() {
-              Text('应付金额')
+              Text('优惠券')
+                .fontSize(14)
+                .fontColor('#666666')
+
+              Blank()
+
+              Text('无可用 >')
+                .fontSize(14)
+                .fontColor('#999999')
+            }
+            .width(StyleConstants.FULL_WIDTH)
+            .height(48)
+            .padding({ left: 16, right: 16 })
+            .alignItems(VerticalAlign.Center)
+
+            Row()
+              .width(StyleConstants.FULL_WIDTH)
+              .height(0.5)
+              .backgroundColor('#F0F0F0')
+
+            Row() {
+              Text('礼品卡(京东卡/E卡)')
+                .fontSize(14)
+                .fontColor('#666666')
+
+              Blank()
+
+              Text('无可用 >')
+                .fontSize(14)
+                .fontColor('#999999')
+            }
+            .width(StyleConstants.FULL_WIDTH)
+            .height(48)
+            .padding({ left: 16, right: 16 })
+            .alignItems(VerticalAlign.Center)
+
+            Row()
+              .width(StyleConstants.FULL_WIDTH)
+              .height(0.5)
+              .backgroundColor('#F0F0F0')
+
+            // 合计行
+            Row() {
+              Blank()
+
+              Text('合计：')
                 .fontSize(14)
                 .fontColor('#333333')
-                .fontWeight(FontWeight.Bold)
-              Blank()
-              Text(`￥${this.totalAmount.toFixed(2)}`)
+
+              Text(`¥${this.totalAmount.toFixed(2)}`)
                 .fontSize(16)
                 .fontColor('#E53935')
                 .fontWeight(FontWeight.Bold)
             }
             .width(StyleConstants.FULL_WIDTH)
+            .height(48)
+            .padding({ left: 16, right: 16 })
+            .alignItems(VerticalAlign.Center)
           }
           .width(StyleConstants.FULL_WIDTH)
-          .padding(12)
           .backgroundColor(Color.White)
-          .margin({ bottom: 12 })
+
+          Row()
+            .width(StyleConstants.FULL_WIDTH)
+            .height(10)
+            .backgroundColor('#F5F5F5')
+
+          // 发票区域
+          this.InvoiceSection()
+
+          Row()
+            .width(StyleConstants.FULL_WIDTH)
+            .height(10)
+            .backgroundColor('#F5F5F5')
+
+          // 号码保护区域
+          this.PhoneProtectSection()
+
+          // 底部留白
+          Row()
+            .width(StyleConstants.FULL_WIDTH)
+            .height(16)
+            .backgroundColor('#F5F5F5')
         }
         .width(StyleConstants.FULL_WIDTH)
-        .padding(12)
       }
       .layoutWeight(1)
       .width(StyleConstants.FULL_WIDTH)
+      .backgroundColor('#F5F5F5')
 
-      // 提交按钮
-      Button(this.isLoading ? '提交中...' : '提交订单')
-        .width(`calc(100% - 24vp)`)
-        .height(48)
-        .margin({ left: 12, right: 12, bottom: this.safeBottom + 12 })
-        .backgroundColor(this.selectedCount === 0 || this.isLoading ? '#CCCCCC' : '#E53935')
-        .enabled(this.selectedCount > 0 && !this.isLoading)
-        .fontColor(Color.White)
-        .fontSize(16)
-        .fontWeight(FontWeight.Bold)
-        .onClick(() => {
-          this.submitOrder()
-        })
+      // 底部支付栏
+      Row() {
+        Row() {
+          Text('¥')
+            .fontSize(14)
+            .fontColor('#E53935')
+            .margin({ bottom: 2 })
+
+          Text(this.totalAmount.toFixed(2).split('.')[0])
+            .fontSize(24)
+            .fontColor('#E53935')
+            .fontWeight(FontWeight.Bold)
+
+          Text('.' + this.totalAmount.toFixed(2).split('.')[1])
+            .fontSize(14)
+            .fontColor('#E53935')
+            .margin({ bottom: 2 })
+        }
+        .margin({ left: 16 })
+        .alignItems(VerticalAlign.Bottom)
+
+        Blank()
+
+        Button(this.isLoading ? '提交中...' : '在线支付')
+          .width(140)
+          .height(44)
+          .backgroundColor(this.selectedCount === 0 || this.isLoading ? '#CCCCCC' : '#E53935')
+          .enabled(this.selectedCount > 0 && !this.isLoading)
+          .fontColor(Color.White)
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .borderRadius(22)
+          .margin({ right: 16 })
+          .onClick(() => {
+            this.submitOrder()
+          })
+      }
+      .width(StyleConstants.FULL_WIDTH)
+      .height(64 + this.safeBottom)
+      .backgroundColor(Color.White)
+      .padding({ bottom: this.safeBottom })
+      .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetY: -2 })
+      .alignItems(VerticalAlign.Center)
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
