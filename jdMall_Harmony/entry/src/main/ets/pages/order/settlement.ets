@@ -4,6 +4,7 @@ import router from '@ohos.router'
 import { GoodsInfo, queryCartGoodsList, StoreGoodsInfo } from '../../service/cartService'
 import { createOrder, CreateOrderResult, CreateOrderParams } from '../../service/orderService'
 import { CouponInfo, queryAvailableCoupons } from '../../service/couponService'
+import { AddressInfo, queryAddressList } from '../../service/addressService'
 
 interface RouteParams {
   orderId: number
@@ -22,10 +23,11 @@ export struct Settlement {
   @StorageProp('safeTop') safeTop: number = 0
 
   // 收货信息
-  @State receiverName: string = '张三'
-  @State receiverPhone: string = '13800138000'
-  @State receiverAddress: string = '北京市朝阳区建国路88号SOHO现代城'
+  @State receiverName: string = ''
+  @State receiverPhone: string = ''
+  @State receiverAddress: string = ''
   @State remark: string = ''
+  @State currentAddressId: number = 0
 
   // 号码保护开关
   @State phoneProtected: boolean = true
@@ -37,6 +39,37 @@ export struct Settlement {
 
   aboutToAppear() {
     this.querySettlementInfo()
+    this.loadDefaultAddress()
+  }
+
+  onPageShow() {
+    const json = AppStorage.get('selectedAddressJson') as string
+    if (json) {
+      try {
+        const addr = JSON.parse(json) as AddressInfo
+        this.receiverName = addr.name
+        this.receiverPhone = addr.phone
+        this.receiverAddress = addr.region + ' ' + addr.detail
+        this.currentAddressId = addr.id
+      } catch (e) {
+        // ignore parse error
+      }
+      AppStorage.setOrCreate('selectedAddressJson', '')
+    }
+  }
+
+  private loadDefaultAddress() {
+    const userId = this.userAccount || 'guest'
+    queryAddressList(userId).then(list => {
+      const defaultAddr = list.find(a => a.isDefault)
+      const addr = defaultAddr || (list.length > 0 ? list[0] : null)
+      if (addr) {
+        this.receiverName = addr.name
+        this.receiverPhone = addr.phone
+        this.receiverAddress = addr.region + ' ' + addr.detail
+        this.currentAddressId = addr.id
+      }
+    }).catch(() => {})
   }
 
   querySettlementInfo() {
@@ -249,7 +282,7 @@ export struct Settlement {
     .width(StyleConstants.FULL_WIDTH)
     .backgroundColor(Color.White)
     .onClick(() => {
-      ToastUtil.showToast('地址选择功能开发中')
+      router.pushUrl({ url: 'pages/mine/address', params: { fromSettlement: 'true' } })
     })
   }
 

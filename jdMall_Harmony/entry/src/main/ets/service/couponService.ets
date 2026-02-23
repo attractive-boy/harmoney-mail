@@ -11,13 +11,9 @@ export interface CouponInfo {
 }
 
 export const queryCouponList = async (userId: string, status?: string): Promise<CouponInfo[]> => {
-  const body: Record<string, string> = { userId }
-  if (status) {
-    body['status'] = status
-  }
   const res = await RequestUtil.post<CouponInfo[]>(
     `${EnvConfig.baseUrl}/coupon/list`,
-    body
+    status ? { userId: userId, status: status } : { userId: userId }
   )
   if (isSuccess(res.code)) {
     return res.data || []
@@ -28,7 +24,7 @@ export const queryCouponList = async (userId: string, status?: string): Promise<
 export const receiveCoupon = async (userId: string): Promise<CouponInfo> => {
   const res = await RequestUtil.post<CouponInfo>(
     `${EnvConfig.baseUrl}/coupon/receive`,
-    { userId }
+    { userId: userId }
   )
   if (isSuccess(res.code)) {
     return res.data
@@ -39,7 +35,7 @@ export const receiveCoupon = async (userId: string): Promise<CouponInfo> => {
 export const queryAvailableCoupons = async (userId: string, orderAmount: number): Promise<CouponInfo[]> => {
   const res = await RequestUtil.post<CouponInfo[]>(
     `${EnvConfig.baseUrl}/coupon/available`,
-    { userId, orderAmount }
+    { userId: userId, orderAmount: orderAmount }
   )
   if (isSuccess(res.code)) {
     return res.data || []

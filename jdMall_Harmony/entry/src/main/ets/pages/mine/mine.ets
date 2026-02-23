@@ -6,6 +6,7 @@ import { FunctionInfo, queryMinePageInfo, TabInfo } from '../../service/mineServ
 import { fetchProfile } from '../../service/authService'
 import AuthStorage from '../../utils/LocalStorageUtil'
 import { queryCouponList } from '../../service/couponService'
+import { queryAddressList } from '../../service/addressService'
 
 @Component
 export struct Mine {
@@ -22,6 +23,7 @@ export struct Mine {
   @State tabsCurrentIndex: number = 0
   @State tabList: TabInfo[] = []
   @State unusedCouponCount: number = 0
+  @State addressCount: number = 0
 
   @State tabFloatingOffsetTop:number  = 0
 
@@ -39,10 +41,12 @@ export struct Mine {
     this.queryMineInfo()
     this.loadProfile()
     this.loadCouponCount()
+    this.loadAddressCount()
   }
 
   onPageShow() {
     this.loadCouponCount()
+    this.loadAddressCount()
     if (this.authRefreshTick !== this.lastAuthRefreshTick) {
       this.lastAuthRefreshTick = this.authRefreshTick
       this.queryMineInfo()
@@ -58,6 +62,7 @@ export struct Mine {
           this.MineHeader()
           this.OrderInfo()
           this.CouponEntry()
+          this.AddressEntry()
           this.MenuSlider()
           this.TabsContentList()
         }
@@ -418,6 +423,41 @@ export struct Mine {
   }
 
   @Builder
+  AddressEntry() {
+    Row() {
+      Text('📍')
+        .fontSize(20)
+        .margin({ right: 8 })
+
+      Text('收货地址')
+        .fontSize(15)
+        .fontColor('#333333')
+        .fontWeight(FontWeight.Medium)
+
+      Blank()
+
+      Text(this.addressCount > 0 ? `${this.addressCount}个地址` : '暂无地址')
+        .fontSize(13)
+        .fontColor('#999999')
+
+      Image($r('app.media.ic_arrow_right'))
+        .width(16)
+        .height(16)
+        .margin({ left: 4 })
+    }
+    .width('calc(100% - 20vp)')
+    .height(48)
+    .backgroundColor(Color.White)
+    .border({ radius: 10 })
+    .padding({ left: 12, right: 12 })
+    .margin({ left: 10, right: 10, top: 10 })
+    .alignItems(VerticalAlign.Center)
+    .onClick(() => {
+      router.pushUrl({ url: 'pages/mine/address' })
+    })
+  }
+
+  @Builder
   MenuSlider() {
     Swiper() {
       Grid() {
@@ -545,6 +585,13 @@ export struct Mine {
     const userId = this.userAccount || 'guest'
     queryCouponList(userId, 'UNUSED').then(list => {
       this.unusedCouponCount = list.length
+    }).catch(() => {})
+  }
+
+  private loadAddressCount() {
+    const userId = this.userAccount || 'guest'
+    queryAddressList(userId).then(list => {
+      this.addressCount = list.length
     }).catch(() => {})
   }
 

@@ -8,6 +8,8 @@
     "pages/order/orderList",
     "pages/order/orderDetail",
     "pages/order/settlement",
-    "pages/mine/coupon"
+    "pages/mine/coupon",
+    "pages/mine/address",
+    "pages/mine/addressEdit"
   ]
 }
