@@ -3,9 +3,9 @@ import { RequestUtil, EnvConfig, isSuccess } from '@ohos/common'
 // 请求参数接口
 export interface CreateOrderParams {
   userId: string
-  receiverName?: string
-  receiverPhone?: string
-  receiverAddress?: string
+  receiverName: string
+  receiverPhone: string
+  receiverAddress: string
   remark?: string
 }
 

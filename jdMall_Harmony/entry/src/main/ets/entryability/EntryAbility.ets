@@ -1,8 +1,9 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, ConfigurationConstant, UIAbility, Want, common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { AppUtil } from '@pura/harmony-utils'
 import { DialogHelper, Orientation } from '@pura/harmony-dialog';
+import AuthStorage, { LoginInfo, TokenCheckInfo } from '../utils/LocalStorageUtil'
 
 const DOMAIN = 0x0000;
 
@@ -34,6 +35,9 @@ export default class EntryAbility extends UIAbility {
     const bottomArea = win.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
     AppStorage.setOrCreate('safeBottom', px2vp(bottomArea.bottomRect.height));
 
+    // 恢复持久化的登录状态
+    this.restoreLoginState()
+
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
@@ -41,6 +45,36 @@ export default class EntryAbility extends UIAbility {
       }
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
     });
+  }
+
+  private restoreLoginState(): void {
+    AuthStorage.init(this.context).then((): void => {
+      AuthStorage.getLoginInfo().then((loginInfo: LoginInfo | null): void => {
+        if (loginInfo) {
+          // 检查token有效性
+          const tokenCheck: TokenCheckInfo = { token: loginInfo.token, loginTime: loginInfo.loginTime }
+          if (AuthStorage.isTokenValid(tokenCheck)) {
+            // 恢复登录状态到AppStorage
+            AppStorage.setOrCreate('userToken', loginInfo.token)
+            AppStorage.setOrCreate('userAccount', loginInfo.account)
+            AppStorage.setOrCreate('userDisplayName', loginInfo.displayName)
+            AppStorage.setOrCreate('userPoints', loginInfo.points)
+            AppStorage.setOrCreate('userCredit', loginInfo.credit)
+            AppStorage.setOrCreate('authRefreshTick', Date.now())
+            hilog.info(DOMAIN, 'testTag', 'Login state restored: %{public}s', loginInfo.account as string);
+          } else {
+            // Token已过期，清除并要求重新登录
+            AuthStorage.clearLoginInfo().catch((): void => {
+              hilog.error(DOMAIN, 'testTag', 'Failed to clear login info on token expiry');
+            })
+          }
+        }
+      }).catch((): void => {
+        hilog.error(DOMAIN, 'testTag', 'Failed to restore login state');
+      })
+    }).catch((): void => {
+      hilog.error(DOMAIN, 'testTag', 'Failed to init AuthStorage');
+    })
   }
 
   onWindowStageDestroy(): void {

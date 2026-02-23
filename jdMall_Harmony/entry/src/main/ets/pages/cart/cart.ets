@@ -22,7 +22,7 @@ export struct Cart {
   @State totalAmount: number = 0
   @State selectedCount: number = 0
   @State allSelected: boolean = false
-  @State userId: string = 'guest'
+  @StorageProp('userAccount') @Watch('onUserChange') userAccount: string = 'guest'
 
   @StorageProp('safeBottom') safeBottom: number = 0
 
@@ -32,8 +32,11 @@ export struct Cart {
   goodsItemWidth = (DisplayUtil.getWidth() - 30) / 2
 
   aboutToAppear() {
-    const storedUser = AppStorage.Get<string>('userAccount')
-    this.userId = storedUser ? storedUser : 'guest'
+    this.queryCartGoods()
+  }
+
+  onUserChange() {
+    // 用户登录状态变化时重新加载购物车
     this.queryCartGoods()
   }
 
@@ -318,9 +321,19 @@ export struct Cart {
           .fontWeight(FontWeight.Medium)
       }
       .height(36)
-      .backgroundColor('#E53935')
+      .backgroundColor(this.selectedCount === 0 ? '#CCCCCC' : '#E53935')
       .borderRadius(18)
       .padding({ left: 12, right: 12 })
+      .enabled(this.selectedCount > 0)
+      .onClick(() => {
+        if (this.selectedCount > 0) {
+          router.pushUrl({
+            url: 'pages/order/settlement'
+          })
+        } else {
+          ToastUtil.showToast('请选择要购买的商品')
+        }
+      })
     }
     .height(50 + this.safeBottom)
     .width(StyleConstants.FULL_WIDTH)
@@ -371,14 +384,14 @@ export struct Cart {
   }
 
   queryCartGoods() {
-    queryCartGoodsList(this.userId).then(list => {
+    queryCartGoodsList(this.userAccount).then(list => {
       this.cartStoreGoodsList = list || []
       this.updateTotals()
     })
   }
 
   private handleClearCart() {
-    clearCart(this.userId).then(() => {
+    clearCart(this.userAccount).then(() => {
       this.cartStoreGoodsList = []
       this.updateTotals()
       ToastUtil.showToast('购物车已清空')
@@ -418,7 +431,7 @@ export struct Cart {
 
   private toggleItemSelect(store: StoreGoodsInfo, item: GoodsInfo, selected: boolean) {
     item.select = selected
-    updateCartItem({ userId: this.userId, itemId: item.id, selected: selected }).catch(() => {
+    updateCartItem({ userId: this.userAccount, itemId: item.id, selected: selected }).catch(() => {
       item.select = !selected
     }).finally(() => {
       this.updateTotals()
@@ -430,7 +443,7 @@ export struct Cart {
     store.goodsList.forEach(item => {
       item.select = selected
     })
-    selectStoreItems(this.userId, store.storeCode, selected).catch(() => {
+    selectStoreItems(this.userAccount, store.storeCode, selected).catch(() => {
       store.select = !selected
       store.goodsList.forEach(item => {
         item.select = !selected
@@ -448,7 +461,7 @@ export struct Cart {
         item.select = selected
       })
     })
-    selectAllItems(this.userId, selected).catch(() => {
+    selectAllItems(this.userAccount, selected).catch(() => {
       this.allSelected = !selected
       this.cartStoreGoodsList.forEach(store => {
         store.select = !selected
@@ -463,7 +476,7 @@ export struct Cart {
 
   private updateItemNum(item: GoodsInfo, num: number) {
     item.num = num
-    updateCartItem({ userId: this.userId, itemId: item.id, num: num }).finally(() => {
+    updateCartItem({ userId: this.userAccount, itemId: item.id, num: num }).finally(() => {
       this.updateTotals()
     })
   }
@@ -471,20 +484,20 @@ export struct Cart {
   private toggleItemFlag(item: GoodsInfo, flag: 'saved' | 'favorite' | 'compare') {
     if (flag === 'saved') {
       item.saved = !item.saved
-      updateCartItem({ userId: this.userId, itemId: item.id, saved: item.saved })
+      updateCartItem({ userId: this.userAccount, itemId: item.id, saved: item.saved })
       return
     }
     if (flag === 'favorite') {
       item.favorite = !item.favorite
-      updateCartItem({ userId: this.userId, itemId: item.id, favorite: item.favorite })
+      updateCartItem({ userId: this.userAccount, itemId: item.id, favorite: item.favorite })
       return
     }
     item.compare = !item.compare
-    updateCartItem({ userId: this.userId, itemId: item.id, compare: item.compare })
+    updateCartItem({ userId: this.userAccount, itemId: item.id, compare: item.compare })
   }
 
   private removeSingleItem(item: GoodsInfo) {
-    removeCartItem(this.userId, item.id).then(() => {
+    removeCartItem(this.userAccount, item.id).then(() => {
       this.cartStoreGoodsList.forEach(store => {
         store.goodsList = store.goodsList.filter(g => g.id !== item.id)
       })
@@ -506,7 +519,7 @@ export struct Cart {
       ToastUtil.showToast('请选择要删除的商品')
       return
     }
-    removeCartItems(this.userId, ids).then(() => {
+    removeCartItems(this.userAccount, ids).then(() => {
       this.cartStoreGoodsList.forEach(store => {
         store.goodsList = store.goodsList.filter(item => !item.select)
       })

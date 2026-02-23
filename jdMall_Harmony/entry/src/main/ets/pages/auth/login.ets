@@ -2,6 +2,7 @@ import router from '@ohos.router'
 import { StyleConstants } from '@ohos/common'
 import { ToastUtil } from '@pura/harmony-utils'
 import { loginAccount } from '../../service/authService'
+import AuthStorage, { LoginInfo } from '../../utils/LocalStorageUtil'
 
 @Entry
 @Component
@@ -133,12 +134,30 @@ export struct Login {
     this.isSubmitting = true
     try {
       const data = await loginAccount({ account, password })
-      AppStorage.setOrCreate('userToken', data.token || '')
+      const token = data.token || ''
+      const displayName = data.nickname || data.account || account
+      const points = data.points ?? 0
+      const credit = data.credit ?? 0
+
+      // 保存到AppStorage（用于当前会话）
+      AppStorage.setOrCreate('userToken', token)
       AppStorage.setOrCreate('userAccount', data.account || account)
-      AppStorage.setOrCreate('userDisplayName', data.nickname || data.account || account)
-      AppStorage.setOrCreate('userPoints', data.points ?? 0)
-      AppStorage.setOrCreate('userCredit', data.credit ?? 0)
+      AppStorage.setOrCreate('userDisplayName', displayName)
+      AppStorage.setOrCreate('userPoints', points)
+      AppStorage.setOrCreate('userCredit', credit)
       AppStorage.setOrCreate('authRefreshTick', Date.now())
+
+      // 保存到本地存储（用于下次启动自动登录）
+      const loginInfo: LoginInfo = {
+        token,
+        account: data.account || account,
+        displayName,
+        points,
+        credit,
+        loginTime: Date.now()
+      }
+      await AuthStorage.saveLoginInfo(loginInfo)
+
       ToastUtil.showToast('登录成功')
       router.back()
     } catch (error) {

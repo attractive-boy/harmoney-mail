@@ -4,6 +4,7 @@ import { DisplayUtil, LogUtil, ClickUtil, ToastUtil } from '@pura/harmony-utils'
 import { ImageKnifeView } from '@ohos/common'
 import { FunctionInfo, queryMinePageInfo, TabInfo } from '../../service/mineService'
 import { fetchProfile } from '../../service/authService'
+import AuthStorage from '../../utils/LocalStorageUtil'
 
 @Component
 export struct Mine {
@@ -160,13 +161,21 @@ export struct Mine {
           })
           .onClick(() => {
             if (this.userAccount) {
+              // 清除AppStorage中的登录信息
               AppStorage.setOrCreate('userToken', '')
               AppStorage.setOrCreate('userAccount', '')
               AppStorage.setOrCreate('userDisplayName', '')
               AppStorage.setOrCreate('userPoints', 0)
               AppStorage.setOrCreate('userCredit', 0)
               AppStorage.setOrCreate('authRefreshTick', Date.now())
-              ToastUtil.showToast('已退出登录')
+              
+              // 清除本地存储中的登录信息
+              AuthStorage.clearLoginInfo().then((): void => {
+                ToastUtil.showToast('已退出登录')
+              }).catch((): void => {
+                console.error('Clear login info failed')
+                ToastUtil.showToast('退出登录失败')
+              })
             } else {
               router.pushUrl({ url: 'pages/auth/login' })
             }
