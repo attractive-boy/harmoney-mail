@@ -22,6 +22,7 @@ export struct Cart {
   @State totalAmount: number = 0
   @State selectedCount: number = 0
   @State allSelected: boolean = false
+  @State updateCounter: number = 0
   @StorageProp('userAccount') @Watch('onUserChange') userAccount: string = 'guest'
 
   @StorageProp('safeBottom') safeBottom: number = 0
@@ -105,17 +106,18 @@ export struct Cart {
     Row() {
       Column() {
         Image(info.select ? $r('app.media.selector_check_true') : $r('app.media.selector_check_false'))
-          .width(18)
-          .height(18)
-          .onClick(() => {
-            const next = !info.select
-            this.toggleStoreSelect(info, next)
-          })
+          .width(20)
+          .height(20)
+          .fillColor(info.select ? '#E53935' : '#CCCCCC')
       }
-      .width(45)
+      .width(56)
       .alignItems(HorizontalAlign.Center)
-      .justifyContent(FlexAlign.End)
+      .justifyContent(FlexAlign.Center)
       .height(StyleConstants.FULL_HEIGHT)
+      .onClick(() => {
+        const next = !info.select
+        this.toggleStoreSelect(info, next)
+      })
 
       Image($r('app.media.ic_store'))
         .width(20)
@@ -250,10 +252,10 @@ export struct Cart {
             .border({radius: { bottomLeft: index + 1 == item.goodsList.length ? 10 : 0, bottomRight: index + 1 == item.goodsList.length ? 10 : 0 }})
             .margin({left: 10, right: 10, bottom: index + 1 != item.goodsList.length ? 0 : (parentIndex + 1 !=  this.cartStoreGoodsList.length ? 12 : 0)})
 
-          },(goodsItem: GoodsInfo) => goodsItem.id.toString())
+          },(goodsItem: GoodsInfo) => `${goodsItem.id}_${this.updateCounter}`)
         }
         .width(StyleConstants.FULL_WIDTH)
-      },(item: StoreGoodsInfo) => item.storeCode)
+      },(item: StoreGoodsInfo) => `${item.storeCode}_${this.updateCounter}`)
     }
     .width(StyleConstants.FULL_WIDTH)
   }
@@ -443,11 +445,15 @@ export struct Cart {
 
   private toggleItemSelect(store: StoreGoodsInfo, item: GoodsInfo, selected: boolean) {
     item.select = selected
+    store.goodsList = store.goodsList.slice()
     this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+    this.updateCounter++
     this.updateTotals()
     updateCartItem({ userId: this.userAccount, itemId: item.id, selected: selected }).catch(() => {
       item.select = !selected
+      store.goodsList = store.goodsList.slice()
       this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+      this.updateCounter++
       this.updateTotals()
     })
   }
@@ -457,14 +463,18 @@ export struct Cart {
     store.goodsList.forEach(item => {
       item.select = selected
     })
+    store.goodsList = store.goodsList.slice()
     this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+    this.updateCounter++
     this.updateTotals()
     selectStoreItems(this.userAccount, store.storeCode, selected).catch(() => {
       store.select = !selected
       store.goodsList.forEach(item => {
         item.select = !selected
       })
+      store.goodsList = store.goodsList.slice()
       this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+      this.updateCounter++
       this.updateTotals()
     })
   }
@@ -476,8 +486,10 @@ export struct Cart {
       store.goodsList.forEach(item => {
         item.select = selected
       })
+      store.goodsList = store.goodsList.slice()
     })
     this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+    this.updateCounter++
     this.updateTotals()
     selectAllItems(this.userAccount, selected).catch(() => {
       this.allSelected = !selected
@@ -486,15 +498,22 @@ export struct Cart {
         store.goodsList.forEach(item => {
           item.select = !selected
         })
+        store.goodsList = store.goodsList.slice()
       })
       this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+      this.updateCounter++
       this.updateTotals()
     })
   }
 
   private updateItemNum(item: GoodsInfo, num: number) {
     item.num = num
+    const store = this.cartStoreGoodsList.find(s => s.goodsList.some(g => g.id === item.id))
+    if (store) {
+      store.goodsList = store.goodsList.slice()
+    }
     this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+    this.updateCounter++
     this.updateTotals()
     updateCartItem({ userId: this.userAccount, itemId: item.id, num: num })
   }
@@ -502,17 +521,29 @@ export struct Cart {
   private toggleItemFlag(item: GoodsInfo, flag: 'saved' | 'favorite' | 'compare') {
     if (flag === 'saved') {
       item.saved = !item.saved
+      const store = this.cartStoreGoodsList.find(s => s.goodsList.some(g => g.id === item.id))
+      if (store) {
+        store.goodsList = store.goodsList.slice()
+      }
       this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
       updateCartItem({ userId: this.userAccount, itemId: item.id, saved: item.saved })
       return
     }
     if (flag === 'favorite') {
       item.favorite = !item.favorite
+      const store = this.cartStoreGoodsList.find(s => s.goodsList.some(g => g.id === item.id))
+      if (store) {
+        store.goodsList = store.goodsList.slice()
+      }
       this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
       updateCartItem({ userId: this.userAccount, itemId: item.id, favorite: item.favorite })
       return
     }
     item.compare = !item.compare
+    const store = this.cartStoreGoodsList.find(s => s.goodsList.some(g => g.id === item.id))
+    if (store) {
+      store.goodsList = store.goodsList.slice()
+    }
     this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
     updateCartItem({ userId: this.userAccount, itemId: item.id, compare: item.compare })
   }
