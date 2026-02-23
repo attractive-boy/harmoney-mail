@@ -146,17 +146,18 @@ export struct Cart {
               Row() {
                 Column() {
                   Image(goodsItem.select ? $r('app.media.selector_check_true') : $r('app.media.selector_check_false'))
-                    .width(18)
-                    .height(18)
-                    .onClick(() => {
-                      const next = !goodsItem.select
-                      this.toggleItemSelect(item, goodsItem, next)
-                    })
+                    .width(20)
+                    .height(20)
+                    .fillColor(goodsItem.select ? '#E53935' : '#CCCCCC')
                 }
-                .width(45)
+                .width(56)
                 .alignItems(HorizontalAlign.Center)
                 .justifyContent(FlexAlign.Center)
                 .height(StyleConstants.FULL_HEIGHT)
+                .onClick(() => {
+                  const next = !goodsItem.select
+                  this.toggleItemSelect(item, goodsItem, next)
+                })
 
                 Row() {
                   ImageKnifeView({
@@ -230,16 +231,16 @@ export struct Cart {
                   .padding({left: 6, right: 6})
                   .alignItems(HorizontalAlign.Start)
                   .justifyContent(FlexAlign.Start)
+                  .onClick(() => {
+                    router.pushUrl({
+                      url: 'pages/detail/detail',
+                      params: {
+                        goodsId: goodsItem.code
+                      }
+                    })
+                  })
                 }
                 .layoutWeight(1)
-                .onClick(() => {
-                  router.pushUrl({
-                    url: 'pages/detail/detail',
-                    params: {
-                      goodsId: goodsItem.code
-                    }
-                  })
-                })
               }
               .height(108)
               .width(StyleConstants.FULL_WIDTH)
@@ -281,49 +282,57 @@ export struct Cart {
     Row() {
       Row() {
         Image(this.allSelected ? $r('app.media.selector_check_true') : $r('app.media.selector_check_false'))
-          .width(18)
-          .height(18)
+          .width(20)
+          .height(20)
+          .fillColor(this.allSelected ? '#E53935' : '#CCCCCC')
         Text('全选')
-          .fontSize(12)
+          .fontSize(13)
           .fontColor('#333333')
+          .fontWeight(FontWeight.Medium)
           .margin({ left: 6 })
       }
-      .width(80)
+      .width(90)
+      .height(50 + this.safeBottom)
       .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.Center)
       .onClick(() => {
         this.toggleSelectAll(!this.allSelected)
       })
 
       Column() {
         Text(`合计 ￥${this.totalAmount.toFixed(2)}`)
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
           .fontColor('#E53935')
         Text(`已选${this.selectedCount}件`)
-          .fontSize(11)
+          .fontSize(12)
           .fontColor('#999999')
-          .margin({ top: 2 })
+          .margin({ top: 3 })
       }
       .layoutWeight(1)
+      .margin({ left: 8 })
 
       Text('删除')
-        .fontSize(12)
-        .fontColor('#666666')
-        .margin({ right: 10 })
+        .fontSize(13)
+        .fontColor('#E53935')
+        .fontWeight(FontWeight.Medium)
+        .margin({ right: 12 })
         .onClick(() => {
           this.removeSelectedItems()
         })
 
       Button() {
-        Text(`去结算(${this.selectedCount})`)
-          .fontSize(12)
+        Text(`去结算\n(${this.selectedCount})`)
+          .fontSize(13)
           .fontColor(Color.White)
-          .fontWeight(FontWeight.Medium)
+          .fontWeight(FontWeight.Bold)
+          .textAlign(TextAlign.Center)
+          .lineHeight(18)
       }
-      .height(36)
+      .height(50)
+      .width(80)
       .backgroundColor(this.selectedCount === 0 ? '#CCCCCC' : '#E53935')
-      .borderRadius(18)
-      .padding({ left: 12, right: 12 })
+      .borderRadius(6)
       .enabled(this.selectedCount > 0)
       .onClick(() => {
         if (this.selectedCount > 0) {
@@ -337,10 +346,13 @@ export struct Cart {
     }
     .height(50 + this.safeBottom)
     .width(StyleConstants.FULL_WIDTH)
-    .padding({ left: 12, right: 12, bottom: this.safeBottom })
+    .padding({ left: 0, right: 8, bottom: this.safeBottom })
     .alignItems(VerticalAlign.Center)
     .backgroundColor(Color.White)
     .border({ width: { bottom: 1, top: 1 }, color: '#EAEAEA' })
+    .onAreaChange((oldValue: Area, newValue: Area) => {
+      this.totalInfoHeight = newValue.height as number
+    })
   }
 
   @Builder
@@ -430,45 +442,43 @@ export struct Cart {
   }
 
   private toggleItemSelect(store: StoreGoodsInfo, item: GoodsInfo, selected: boolean) {
-    item.select = selected
+    store.goodsList = store.goodsList.map(g => g.id === item.id ? { ...g, select: selected } : g)
+    this.cartStoreGoodsList = [...this.cartStoreGoodsList]
+    this.updateTotals()
     updateCartItem({ userId: this.userAccount, itemId: item.id, selected: selected }).catch(() => {
-      item.select = !selected
-    }).finally(() => {
+      store.goodsList = store.goodsList.map(g => g.id === item.id ? { ...g, select: !selected } : g)
+      this.cartStoreGoodsList = [...this.cartStoreGoodsList]
       this.updateTotals()
     })
   }
 
   private toggleStoreSelect(store: StoreGoodsInfo, selected: boolean) {
     store.select = selected
-    store.goodsList.forEach(item => {
-      item.select = selected
-    })
+    store.goodsList = store.goodsList.map(g => ({ ...g, select: selected }))
+    this.cartStoreGoodsList = [...this.cartStoreGoodsList]
+    this.updateTotals()
     selectStoreItems(this.userAccount, store.storeCode, selected).catch(() => {
       store.select = !selected
-      store.goodsList.forEach(item => {
-        item.select = !selected
-      })
-    }).finally(() => {
+      store.goodsList = store.goodsList.map(g => ({ ...g, select: !selected }))
+      this.cartStoreGoodsList = [...this.cartStoreGoodsList]
       this.updateTotals()
     })
   }
 
   private toggleSelectAll(selected: boolean) {
     this.allSelected = selected
-    this.cartStoreGoodsList.forEach(store => {
-      store.select = selected
-      store.goodsList.forEach(item => {
-        item.select = selected
-      })
-    })
+    this.cartStoreGoodsList = this.cartStoreGoodsList.map(store => ({
+      ...store,
+      select: selected,
+      goodsList: store.goodsList.map(g => ({ ...g, select: selected }))
+    }))
     selectAllItems(this.userAccount, selected).catch(() => {
       this.allSelected = !selected
-      this.cartStoreGoodsList.forEach(store => {
-        store.select = !selected
-        store.goodsList.forEach(item => {
-          item.select = !selected
-        })
-      })
+      this.cartStoreGoodsList = this.cartStoreGoodsList.map(store => ({
+        ...store,
+        select: !selected,
+        goodsList: store.goodsList.map(g => ({ ...g, select: !selected }))
+      }))
     }).finally(() => {
       this.updateTotals()
     })
