@@ -442,67 +442,78 @@ export struct Cart {
   }
 
   private toggleItemSelect(store: StoreGoodsInfo, item: GoodsInfo, selected: boolean) {
-    store.goodsList = store.goodsList.map(g => g.id === item.id ? { ...g, select: selected } : g)
-    this.cartStoreGoodsList = [...this.cartStoreGoodsList]
+    item.select = selected
+    this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
     this.updateTotals()
     updateCartItem({ userId: this.userAccount, itemId: item.id, selected: selected }).catch(() => {
-      store.goodsList = store.goodsList.map(g => g.id === item.id ? { ...g, select: !selected } : g)
-      this.cartStoreGoodsList = [...this.cartStoreGoodsList]
+      item.select = !selected
+      this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
       this.updateTotals()
     })
   }
 
   private toggleStoreSelect(store: StoreGoodsInfo, selected: boolean) {
     store.select = selected
-    store.goodsList = store.goodsList.map(g => ({ ...g, select: selected }))
-    this.cartStoreGoodsList = [...this.cartStoreGoodsList]
+    store.goodsList.forEach(item => {
+      item.select = selected
+    })
+    this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
     this.updateTotals()
     selectStoreItems(this.userAccount, store.storeCode, selected).catch(() => {
       store.select = !selected
-      store.goodsList = store.goodsList.map(g => ({ ...g, select: !selected }))
-      this.cartStoreGoodsList = [...this.cartStoreGoodsList]
+      store.goodsList.forEach(item => {
+        item.select = !selected
+      })
+      this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
       this.updateTotals()
     })
   }
 
   private toggleSelectAll(selected: boolean) {
     this.allSelected = selected
-    this.cartStoreGoodsList = this.cartStoreGoodsList.map(store => ({
-      ...store,
-      select: selected,
-      goodsList: store.goodsList.map(g => ({ ...g, select: selected }))
-    }))
+    this.cartStoreGoodsList.forEach(store => {
+      store.select = selected
+      store.goodsList.forEach(item => {
+        item.select = selected
+      })
+    })
+    this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+    this.updateTotals()
     selectAllItems(this.userAccount, selected).catch(() => {
       this.allSelected = !selected
-      this.cartStoreGoodsList = this.cartStoreGoodsList.map(store => ({
-        ...store,
-        select: !selected,
-        goodsList: store.goodsList.map(g => ({ ...g, select: !selected }))
-      }))
-    }).finally(() => {
+      this.cartStoreGoodsList.forEach(store => {
+        store.select = !selected
+        store.goodsList.forEach(item => {
+          item.select = !selected
+        })
+      })
+      this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
       this.updateTotals()
     })
   }
 
   private updateItemNum(item: GoodsInfo, num: number) {
     item.num = num
-    updateCartItem({ userId: this.userAccount, itemId: item.id, num: num }).finally(() => {
-      this.updateTotals()
-    })
+    this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
+    this.updateTotals()
+    updateCartItem({ userId: this.userAccount, itemId: item.id, num: num })
   }
 
   private toggleItemFlag(item: GoodsInfo, flag: 'saved' | 'favorite' | 'compare') {
     if (flag === 'saved') {
       item.saved = !item.saved
+      this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
       updateCartItem({ userId: this.userAccount, itemId: item.id, saved: item.saved })
       return
     }
     if (flag === 'favorite') {
       item.favorite = !item.favorite
+      this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
       updateCartItem({ userId: this.userAccount, itemId: item.id, favorite: item.favorite })
       return
     }
     item.compare = !item.compare
+    this.cartStoreGoodsList = this.cartStoreGoodsList.slice()
     updateCartItem({ userId: this.userAccount, itemId: item.id, compare: item.compare })
   }
 
