@@ -5,6 +5,8 @@ import com.example.servers.cart.Cart;
 import com.example.servers.cart.CartItem;
 import com.example.servers.cart.CartItemRepository;
 import com.example.servers.cart.CartRepository;
+import com.example.servers.coupon.Coupon;
+import com.example.servers.coupon.CouponRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,15 +29,18 @@ public class OrderController {
     private final OrderItemRepository orderItemRepository;
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
+    private final CouponRepository couponRepository;
 
     public OrderController(OrderRepository orderRepository,
                            OrderItemRepository orderItemRepository,
                            CartRepository cartRepository,
-                           CartItemRepository cartItemRepository) {
+                           CartItemRepository cartItemRepository,
+                           CouponRepository couponRepository) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
+        this.couponRepository = couponRepository;
     }
 
     @PostMapping("/order/create")
@@ -61,13 +66,39 @@ public class OrderController {
             BigDecimal price = item.getPrice() != null ? new BigDecimal(item.getPrice()) : BigDecimal.ZERO;
             totalAmount = totalAmount.add(price.multiply(new BigDecimal(item.getNum())));
         }
-        
+
+        // 处理红包优惠
+        Long couponId = getLongValue(body, "couponId", null);
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (couponId != null) {
+            Optional<Coupon> couponOpt = couponRepository.findById(couponId);
+            if (couponOpt.isPresent()) {
+                Coupon coupon = couponOpt.get();
+                if (coupon.getUserId().equals(userId) && "UNUSED".equals(coupon.getStatus())) {
+                    discountAmount = coupon.getAmount();
+                    BigDecimal finalAmount = totalAmount.subtract(discountAmount);
+                    if (finalAmount.compareTo(BigDecimal.ZERO) < 0) finalAmount = BigDecimal.ZERO;
+                    totalAmount = finalAmount;
+                    coupon.setStatus("USED");
+                    couponRepository.save(coupon);
+                } else {
+                    couponId = null; // coupon invalid, ignore
+                }
+            } else {
+                couponId = null;
+            }
+        }
+
         // 创建订单
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
         order.setStatus("PENDING_PAYMENT");
+        if (couponId != null) {
+            order.setCouponId(couponId);
+            order.setDiscountAmount(discountAmount);
+        }
         
         // 收货信息（可从前端传入，这里使用默认值）
         order.setReceiverName(getStringValue(body, "receiverName", "收货人"));
@@ -344,6 +375,8 @@ public class OrderController {
         map.put("receiverPhone", order.getReceiverPhone());
         map.put("receiverAddress", order.getReceiverAddress());
         map.put("remark", order.getRemark());
+        map.put("couponId", order.getCouponId());
+        map.put("discountAmount", order.getDiscountAmount());
         return map;
     }
 

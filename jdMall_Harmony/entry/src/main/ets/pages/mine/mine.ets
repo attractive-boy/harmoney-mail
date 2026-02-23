@@ -5,6 +5,7 @@ import { ImageKnifeView } from '@ohos/common'
 import { FunctionInfo, queryMinePageInfo, TabInfo } from '../../service/mineService'
 import { fetchProfile } from '../../service/authService'
 import AuthStorage from '../../utils/LocalStorageUtil'
+import { queryCouponList } from '../../service/couponService'
 
 @Component
 export struct Mine {
@@ -20,6 +21,7 @@ export struct Mine {
   @State showBackTop: boolean[] = []
   @State tabsCurrentIndex: number = 0
   @State tabList: TabInfo[] = []
+  @State unusedCouponCount: number = 0
 
   @State tabFloatingOffsetTop:number  = 0
 
@@ -36,9 +38,11 @@ export struct Mine {
   aboutToAppear() {
     this.queryMineInfo()
     this.loadProfile()
+    this.loadCouponCount()
   }
 
   onPageShow() {
+    this.loadCouponCount()
     if (this.authRefreshTick !== this.lastAuthRefreshTick) {
       this.lastAuthRefreshTick = this.authRefreshTick
       this.queryMineInfo()
@@ -53,6 +57,7 @@ export struct Mine {
         Column() {
           this.MineHeader()
           this.OrderInfo()
+          this.CouponEntry()
           this.MenuSlider()
           this.TabsContentList()
         }
@@ -378,6 +383,41 @@ export struct Mine {
   }
 
   @Builder
+  CouponEntry() {
+    Row() {
+      Text('🧧')
+        .fontSize(20)
+        .margin({ right: 8 })
+
+      Text('我的红包')
+        .fontSize(15)
+        .fontColor('#333333')
+        .fontWeight(FontWeight.Medium)
+
+      Blank()
+
+      Text(this.unusedCouponCount > 0 ? `${this.unusedCouponCount}张可用` : '暂无可用')
+        .fontSize(13)
+        .fontColor(this.unusedCouponCount > 0 ? '#E53935' : '#999999')
+
+      Image($r('app.media.ic_arrow_right'))
+        .width(16)
+        .height(16)
+        .margin({ left: 4 })
+    }
+    .width('calc(100% - 20vp)')
+    .height(48)
+    .backgroundColor(Color.White)
+    .border({ radius: 10 })
+    .padding({ left: 12, right: 12 })
+    .margin({ left: 10, right: 10, top: 10 })
+    .alignItems(VerticalAlign.Center)
+    .onClick(() => {
+      router.pushUrl({ url: 'pages/mine/coupon' })
+    })
+  }
+
+  @Builder
   MenuSlider() {
     Swiper() {
       Grid() {
@@ -499,6 +539,13 @@ export struct Mine {
       this.nineMenuList2.setData(res.functionList?.filter((_, index)=> index >= 5 && index < 10))
       this.tabList = res.tabList || []
     })
+  }
+
+  private loadCouponCount() {
+    const userId = this.userAccount || 'guest'
+    queryCouponList(userId, 'UNUSED').then(list => {
+      this.unusedCouponCount = list.length
+    }).catch(() => {})
   }
 
   private loadProfile() {

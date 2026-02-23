@@ -44,6 +44,11 @@ public class Order {
 
     private String remark;
 
+    private Long couponId;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal discountAmount;
+
     // Getters and Setters
     public Long getId() {
         return id;
@@ -147,5 +152,21 @@ public class Order {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    public Long getCouponId() {
+        return couponId;
+    }
+
+    public void setCouponId(Long couponId) {
+        this.couponId = couponId;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
     }
 }

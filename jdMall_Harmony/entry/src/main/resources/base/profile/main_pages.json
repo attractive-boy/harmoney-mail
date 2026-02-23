@@ -7,6 +7,7 @@
     "pages/search/search",
     "pages/order/orderList",
     "pages/order/orderDetail",
-    "pages/order/settlement"
+    "pages/order/settlement",
+    "pages/mine/coupon"
   ]
 }

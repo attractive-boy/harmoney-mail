@@ -7,6 +7,7 @@ export interface CreateOrderParams {
   receiverPhone: string
   receiverAddress: string
   remark?: string
+  couponId?: number
 }
 
 export interface CreateOrderResult {

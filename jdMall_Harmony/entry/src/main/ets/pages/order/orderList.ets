@@ -95,6 +95,7 @@ export struct OrderList {
             }
           }
           .padding({ bottom: this.safeBottom + 12 })
+          .height(StyleConstants.FULL_HEIGHT)
         }
         .layoutWeight(1)
         .scrollBar(BarState.Off)
@@ -123,8 +124,8 @@ export struct OrderList {
       Blank()
     }
     .width('100%')
-    .height(50 + this.safeTop)
-    .padding({ top: this.safeTop })
+    .height(44 + this.safeTop)
+    .padding({ top: this.safeTop, left: 16, right: 16 })
     .alignItems(VerticalAlign.Center)
     .backgroundColor(Color.White)
   }
