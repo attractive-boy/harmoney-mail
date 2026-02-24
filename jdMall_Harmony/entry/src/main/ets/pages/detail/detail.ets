@@ -3,7 +3,7 @@ import { StyleConstants } from '@ohos/common'
 import { ImageKnifeView } from '@ohos/common'
 import { ToastUtil } from '@pura/harmony-utils'
 import { addToCart } from '../../service/cartService'
-import { queryGoodsDetail, queryStoreGoodsList, GoodsInfo } from '../../service/detailService'
+import { queryGoodsDetail, GoodsInfo } from '../../service/detailService'
 
 @Entry
 @Component
@@ -13,7 +13,6 @@ export struct Detail {
 
   @State goodsId: string = ''
   @State goods: GoodsInfo | null = null
-  @State storeGoods: GoodsInfo[] = []
   @State isLoading: boolean = true
   @State loadError: string = ''
   @State currentImageIndex: number = 0
@@ -24,7 +23,6 @@ export struct Detail {
     this.goodsId = rawId === undefined || rawId === null ? '' : rawId.toString()
     if (this.goodsId) {
       this.loadDetail()
-      this.loadStoreGoods()
     } else {
       this.isLoading = false
       this.loadError = '未获取到商品信息'
@@ -56,8 +54,6 @@ export struct Detail {
               this.DeliverySection()
               this.ServiceSection()
               this.QuestionsSection()
-              this.StoreSection()
-              this.RecommendSection()
             }
           }
           .padding({ bottom: 70 + this.safeBottom })
@@ -305,10 +301,8 @@ export struct Detail {
   @Builder
   PromoTabsSection() {
     Flex({ wrap: FlexWrap.Wrap }) {
-      this.PromoTab('精选', true)
       this.PromoTab('销量最高', false)
       this.PromoTab('评价最优', false)
-      this.PromoTab('新品上架', false)
     }
     .padding(12)
     .width(StyleConstants.FULL_WIDTH)
@@ -555,77 +549,8 @@ export struct Detail {
   }
 
   @Builder
-  RecommendSection() {
-    Column() {
-      Text('推荐列表')
-        .fontSize(14)
-        .fontColor('#333333')
-        .fontWeight(FontWeight.Medium)
-        .padding({ left: 12, top: 4, bottom: 4 })
-      Grid() {
-        ForEach(this.storeGoods, (item: GoodsInfo) => {
-          GridItem() {
-            Column() {
-              ImageKnifeView({
-                loadSrc: item.imgUrl,
-                objectFit: ImageFit.Fill
-              })
-              .width('100%')
-              .height(140)
-              Text(item.description || '')
-                .maxLines(2)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .fontSize(12)
-                .fontColor('#666666')
-                .margin({ top: 8 })
-              Text(`￥${item.price || ''}`)
-                .fontSize(14)
-                .fontColor('#E53935')
-                .fontWeight(FontWeight.Medium)
-                .margin({ top: 6 })
-            }
-            .padding(8)
-            .backgroundColor(Color.White)
-            .borderRadius(6)
-          }
-        }, (item: GoodsInfo) => item.id.toString())
-      }
-      .columnsTemplate('1fr 1fr')
-      .rowsGap(8)
-      .columnsGap(8)
-      .padding({ left: 10, right: 10, top: 8, bottom: 8 })
-    }
-    .backgroundColor('#F5F5F5')
-    .margin({ top: 8 })
-  }
-
-  @Builder
   ActionBar() {
     Row() {
-      Column() {
-        Text('👤')
-          .fontSize(16)
-        Text('客服')
-          .fontSize(10)
-          .fontColor('#666666')
-          .margin({ top: 2 })
-      }
-      .width(50)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
-
-      Column() {
-        Text('🏪')
-          .fontSize(16)
-        Text('店铺')
-          .fontSize(10)
-          .fontColor('#666666')
-          .margin({ top: 2 })
-      }
-      .width(50)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
-
       Column() {
         Text('♡')
           .fontSize(18)
@@ -704,14 +629,6 @@ export struct Detail {
       this.loadError = '商品加载失败'
     }).finally(() => {
       this.isLoading = false
-    })
-  }
-
-  private loadStoreGoods() {
-    queryStoreGoodsList(this.goodsId).then(res => {
-      this.storeGoods = res?.goodsList || []
-    }).catch(() => {
-      this.storeGoods = []
     })
   }
 

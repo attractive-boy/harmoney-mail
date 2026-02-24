@@ -3,7 +3,6 @@ import { AppUtil, ToastUtil } from '@pura/harmony-utils'
 import router from '@ohos.router'
 import { GoodsInfo, queryCartGoodsList, StoreGoodsInfo } from '../../service/cartService'
 import { createOrder, CreateOrderResult, CreateOrderParams } from '../../service/orderService'
-import { CouponInfo, queryAvailableCoupons } from '../../service/couponService'
 import { AddressInfo, queryAddressList } from '../../service/addressService'
 
 interface RouteParams {
@@ -31,11 +30,6 @@ export struct Settlement {
 
   // 号码保护开关
   @State phoneProtected: boolean = true
-
-  // 红包
-  @State availableCoupons: CouponInfo[] = []
-  @State selectedCoupon: CouponInfo | null = null
-  @State showCouponSheet: boolean = false
 
   aboutToAppear() {
     this.querySettlementInfo()
@@ -81,7 +75,6 @@ export struct Settlement {
 
       this.cartStoreGoodsList = list
       this.calculateTotals()
-      this.loadAvailableCoupons()
     }).catch(() => {
       ToastUtil.showToast('加载商品信息失败')
     })
@@ -105,39 +98,8 @@ export struct Settlement {
     this.selectedCount = count
   }
 
-  private loadAvailableCoupons() {
-    const userId = this.userAccount || 'guest'
-    queryAvailableCoupons(userId, this.totalAmount)
-      .then(list => {
-        this.availableCoupons = list
-      })
-      .catch(() => {})
-  }
-
   private getFinalAmount(): number {
-    if (this.selectedCoupon !== null) {
-      const discount = (this.selectedCoupon as CouponInfo).amount
-      const final = this.totalAmount - discount
-      return final < 0 ? 0 : final
-    }
     return this.totalAmount
-  }
-
-  private getCouponText(): string {
-    if (this.selectedCoupon !== null) {
-      return `-¥${(this.selectedCoupon as CouponInfo).amount.toFixed(2)} >`
-    }
-    if (this.availableCoupons.length > 0) {
-      return `有${this.availableCoupons.length}张可用 >`
-    }
-    return '无可用 >'
-  }
-
-  private getCouponTextColor(): string {
-    if (this.selectedCoupon !== null || this.availableCoupons.length > 0) {
-      return '#E53935'
-    }
-    return '#999999'
   }
 
   private parsePrice(price: string | number | undefined): number {
@@ -184,8 +146,7 @@ export struct Settlement {
       receiverName: this.receiverName,
       receiverPhone: this.receiverPhone,
       receiverAddress: this.receiverAddress,
-      remark: this.remark,
-      couponId: this.selectedCoupon !== null ? (this.selectedCoupon as CouponInfo).id : undefined
+      remark: this.remark
     }
 
     this.doCreateOrder(params)
@@ -330,128 +291,6 @@ export struct Settlement {
     .padding({ left: 16, right: 16 })
     .backgroundColor(Color.White)
     .alignItems(VerticalAlign.Center)
-  }
-
-  @Builder
-  CouponSheetContent() {
-    Column() {
-      // Sheet handle bar
-      Row()
-        .width(36)
-        .height(4)
-        .backgroundColor('#E0E0E0')
-        .borderRadius(2)
-        .margin({ top: 8, bottom: 4 })
-
-      // Header
-      Row() {
-        Text('选择红包')
-          .fontSize(16)
-          .fontColor('#333333')
-          .fontWeight(FontWeight.Medium)
-
-        Blank()
-
-        Text('不使用红包')
-          .fontSize(14)
-          .fontColor('#E53935')
-          .onClick(() => {
-            this.selectedCoupon = null
-            this.showCouponSheet = false
-          })
-      }
-      .width(StyleConstants.FULL_WIDTH)
-      .height(48)
-      .padding({ left: 16, right: 16 })
-      .alignItems(VerticalAlign.Center)
-
-      Row()
-        .width(StyleConstants.FULL_WIDTH)
-        .height(0.5)
-        .backgroundColor('#F0F0F0')
-
-      // Coupon list
-      Scroll() {
-        Column() {
-          ForEach(this.availableCoupons, (coupon: CouponInfo) => {
-            Row() {
-              // Left gradient block
-              Column() {
-                Text('¥')
-                  .fontSize(11)
-                  .fontColor(Color.White)
-                Text(coupon.amount % 1 === 0 ? coupon.amount.toFixed(0) : coupon.amount.toFixed(2))
-                  .fontSize(22)
-                  .fontColor(Color.White)
-                  .fontWeight(FontWeight.Bold)
-              }
-              .width(72)
-              .height(StyleConstants.FULL_HEIGHT)
-              .justifyContent(FlexAlign.Center)
-              .alignItems(HorizontalAlign.Center)
-              .linearGradient({
-                direction: GradientDirection.Bottom,
-                colors: [['#E53935', 0.0], ['#FF6B35', 1.0]]
-              })
-              .borderRadius({ topLeft: 8, bottomLeft: 8, topRight: 0, bottomRight: 0 })
-
-              // Right info
-              Column() {
-                Text(coupon.name)
-                  .fontSize(14)
-                  .fontColor('#333333')
-                  .fontWeight(FontWeight.Medium)
-                Text(coupon.type === 'NO_THRESHOLD' ? '无门槛' : `满¥${coupon.minOrderAmount}元可用`)
-                  .fontSize(12)
-                  .fontColor('#999999')
-                  .margin({ top: 4 })
-                Text(`有效期至 ${coupon.expireAt.substring(0, 10)}`)
-                  .fontSize(12)
-                  .fontColor('#999999')
-                  .margin({ top: 2 })
-              }
-              .layoutWeight(1)
-              .padding({ left: 12, right: 12 })
-              .alignItems(HorizontalAlign.Start)
-              .justifyContent(FlexAlign.Center)
-
-              // Selected check
-              if (this.selectedCoupon !== null && (this.selectedCoupon as CouponInfo).id === coupon.id) {
-                Text('✓')
-                  .fontSize(18)
-                  .fontColor('#E53935')
-                  .fontWeight(FontWeight.Bold)
-                  .margin({ right: 16 })
-              }
-            }
-            .width('calc(100% - 24vp)')
-            .height(76)
-            .backgroundColor(Color.White)
-            .borderRadius(8)
-            .shadow({ radius: 4, color: 'rgba(0,0,0,0.06)', offsetX: 0, offsetY: 2 })
-            .margin({ left: 12, right: 12, bottom: 10 })
-            .clip(true)
-            .border({
-              width: this.selectedCoupon !== null && (this.selectedCoupon as CouponInfo).id === coupon.id ? 1 : 0,
-              color: '#E53935',
-              radius: 8
-            })
-            .onClick(() => {
-              this.selectedCoupon = coupon
-              this.showCouponSheet = false
-            })
-          }, (coupon: CouponInfo) => coupon.id.toString())
-        }
-        .width(StyleConstants.FULL_WIDTH)
-        .padding({ top: 12, bottom: 16 })
-        .alignItems(HorizontalAlign.Center)
-      }
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
-    }
-    .width(StyleConstants.FULL_WIDTH)
-    .backgroundColor(Color.White)
-    .borderRadius({ topLeft: 16, topRight: 16, bottomLeft: 0, bottomRight: 0 })
   }
 
   build() {
@@ -694,33 +533,6 @@ export struct Settlement {
                 .height(0.5)
                 .backgroundColor('#F0F0F0')
 
-              // 优惠券行（可交互）
-              Row() {
-                Text('优惠券')
-                  .fontSize(14)
-                  .fontColor('#666666')
-
-                Blank()
-
-                Text(this.getCouponText())
-                  .fontSize(14)
-                  .fontColor(this.getCouponTextColor())
-              }
-              .width(StyleConstants.FULL_WIDTH)
-              .height(48)
-              .padding({ left: 16, right: 16 })
-              .alignItems(VerticalAlign.Center)
-              .onClick(() => {
-                if (this.availableCoupons.length > 0) {
-                  this.showCouponSheet = true
-                }
-              })
-
-              Row()
-                .width(StyleConstants.FULL_WIDTH)
-                .height(0.5)
-                .backgroundColor('#F0F0F0')
-
               Row() {
                 Text('礼品卡(京东卡/E卡)')
                   .fontSize(14)
@@ -741,30 +553,6 @@ export struct Settlement {
                 .width(StyleConstants.FULL_WIDTH)
                 .height(0.5)
                 .backgroundColor('#F0F0F0')
-
-              // 红包抵扣行（选中红包时显示）
-              if (this.selectedCoupon !== null) {
-                Row() {
-                  Text('红包抵扣')
-                    .fontSize(14)
-                    .fontColor('#666666')
-
-                  Blank()
-
-                  Text(`-¥${(this.selectedCoupon as CouponInfo).amount.toFixed(2)}`)
-                    .fontSize(14)
-                    .fontColor('#E53935')
-                }
-                .width(StyleConstants.FULL_WIDTH)
-                .height(48)
-                .padding({ left: 16, right: 16 })
-                .alignItems(VerticalAlign.Center)
-
-                Row()
-                  .width(StyleConstants.FULL_WIDTH)
-                  .height(0.5)
-                  .backgroundColor('#F0F0F0')
-              }
 
               // 合计行
               Row() {
@@ -863,24 +651,6 @@ export struct Settlement {
       .height(StyleConstants.FULL_HEIGHT)
       .backgroundColor('#F5F5F5')
 
-      // 红包选择遮罩层
-      if (this.showCouponSheet) {
-        Column() {
-          // 点击上方半透明区域关闭
-          Column()
-            .layoutWeight(1)
-            .width(StyleConstants.FULL_WIDTH)
-            .backgroundColor('rgba(0,0,0,0.5)')
-            .onClick(() => {
-              this.showCouponSheet = false
-            })
-
-          // 底部红包选择面板
-          this.CouponSheetContent()
-        }
-        .width(StyleConstants.FULL_WIDTH)
-        .height(StyleConstants.FULL_HEIGHT)
-      }
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)

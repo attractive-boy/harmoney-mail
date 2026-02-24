@@ -215,11 +215,29 @@ export struct Category {
   queryLeftCategoryList() {
     queryCategoryList().then(res => {
       const list = res.categoryList || []
-      const defaultCategoryCode = list.length ? list[0].code : ''
-      this.categoryList = list
+      const preferredOrder = [
+        '无线接入',
+        '交换机',
+        '路由器',
+        '防火墙',
+        '入侵检测',
+        '负载均衡器',
+        '技术支持服务',
+        '解决方案',
+        '行业动态'
+      ]
+      const byName = new Map(list.map(item => [item.name, item]))
+      const orderedList = preferredOrder
+        .map(name => byName.get(name))
+        .filter((item): item is CategoryInfo => item !== undefined)
+      const finalList = orderedList.length > 0 ? orderedList : list
+      const defaultCategoryCode = finalList.length ? finalList[0].code : ''
+      this.categoryList = finalList
       this.selectedCategoryCode = defaultCategoryCode
 
-      this.queryGroupCategoryInfo(defaultCategoryCode)
+      if (defaultCategoryCode) {
+        this.queryGroupCategoryInfo(defaultCategoryCode)
+      }
     })
   }
 

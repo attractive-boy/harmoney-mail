@@ -5,7 +5,6 @@ import { ImageKnifeView } from '@ohos/common'
 import { FunctionInfo, queryMinePageInfo, TabInfo } from '../../service/mineService'
 import { fetchProfile } from '../../service/authService'
 import AuthStorage from '../../utils/LocalStorageUtil'
-import { queryCouponList } from '../../service/couponService'
 import { queryAddressList } from '../../service/addressService'
 
 @Component
@@ -22,7 +21,6 @@ export struct Mine {
   @State showBackTop: boolean[] = []
   @State tabsCurrentIndex: number = 0
   @State tabList: TabInfo[] = []
-  @State unusedCouponCount: number = 0
   @State addressCount: number = 0
 
   @State tabFloatingOffsetTop:number  = 0
@@ -40,12 +38,10 @@ export struct Mine {
   aboutToAppear() {
     this.queryMineInfo()
     this.loadProfile()
-    this.loadCouponCount()
     this.loadAddressCount()
   }
 
   onPageShow() {
-    this.loadCouponCount()
     this.loadAddressCount()
     if (this.authRefreshTick !== this.lastAuthRefreshTick) {
       this.lastAuthRefreshTick = this.authRefreshTick
@@ -61,7 +57,6 @@ export struct Mine {
         Column() {
           this.MineHeader()
           this.OrderInfo()
-          this.CouponEntry()
           this.AddressEntry()
           this.NewsEntry()
           this.MenuSlider()
@@ -140,10 +135,6 @@ export struct Mine {
             .fontWeight(FontWeight.Bold)
             .fontColor(Color.Black)
 
-          Text(`积分：${this.userPoints}   信用值：${this.userCredit}`)
-            .fontSize(StyleConstants.FONT_SIZE_FOURTEEN)
-            .fontColor(Color.Black)
-            .margin({top: 6})
 
           Button() {
             Text(this.userAccount ? '退出登录' : '注册/登录')
@@ -388,40 +379,6 @@ export struct Mine {
     .margin({left: 10, right: 10, top: 10})
   }
 
-  @Builder
-  CouponEntry() {
-    Row() {
-      Text('🧧')
-        .fontSize(20)
-        .margin({ right: 8 })
-
-      Text('我的红包')
-        .fontSize(15)
-        .fontColor('#333333')
-        .fontWeight(FontWeight.Medium)
-
-      Blank()
-
-      Text(this.unusedCouponCount > 0 ? `${this.unusedCouponCount}张可用` : '暂无可用')
-        .fontSize(13)
-        .fontColor(this.unusedCouponCount > 0 ? '#E53935' : '#999999')
-
-      Image($r('app.media.ic_arrow_right'))
-        .width(16)
-        .height(16)
-        .margin({ left: 4 })
-    }
-    .width('calc(100% - 20vp)')
-    .height(48)
-    .backgroundColor(Color.White)
-    .border({ radius: 10 })
-    .padding({ left: 12, right: 12 })
-    .margin({ left: 10, right: 10, top: 10 })
-    .alignItems(VerticalAlign.Center)
-    .onClick(() => {
-      router.pushUrl({ url: 'pages/mine/coupon' })
-    })
-  }
 
   @Builder
   NewsEntry() {
@@ -617,12 +574,6 @@ export struct Mine {
     })
   }
 
-  private loadCouponCount() {
-    const userId = this.userAccount || 'guest'
-    queryCouponList(userId, 'UNUSED').then(list => {
-      this.unusedCouponCount = list.length
-    }).catch(() => {})
-  }
 
   private loadAddressCount() {
     const userId = this.userAccount || 'guest'
