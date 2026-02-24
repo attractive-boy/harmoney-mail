@@ -63,6 +63,7 @@ export struct Mine {
           this.OrderInfo()
           this.CouponEntry()
           this.AddressEntry()
+          this.NewsEntry()
           this.MenuSlider()
           this.TabsContentList()
         }
@@ -419,6 +420,41 @@ export struct Mine {
     .alignItems(VerticalAlign.Center)
     .onClick(() => {
       router.pushUrl({ url: 'pages/mine/coupon' })
+    })
+  }
+
+  @Builder
+  NewsEntry() {
+    Row() {
+      Text('📰')
+        .fontSize(20)
+        .margin({ right: 8 })
+
+      Text('行业资讯')
+        .fontSize(15)
+        .fontColor('#333333')
+        .fontWeight(FontWeight.Medium)
+
+      Blank()
+
+      Text('行业动态·技术趋势')
+        .fontSize(13)
+        .fontColor('#999999')
+
+      Image($r('app.media.ic_arrow_right'))
+        .width(16)
+        .height(16)
+        .margin({ left: 4 })
+    }
+    .width('calc(100% - 20vp)')
+    .height(48)
+    .backgroundColor(Color.White)
+    .border({ radius: 10 })
+    .padding({ left: 12, right: 12 })
+    .margin({ left: 10, right: 10, top: 10 })
+    .alignItems(VerticalAlign.Center)
+    .onClick(() => {
+      router.pushUrl({ url: 'pages/news/newsList' })
     })
   }
 

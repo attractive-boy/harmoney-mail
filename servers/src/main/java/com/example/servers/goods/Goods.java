@@ -47,6 +47,10 @@ public class Goods {
     @Column
     private Boolean recommend;
 
+    /** ACTIVE=已上架  INACTIVE=已下架 */
+    @Column(nullable = false)
+    private String status = "ACTIVE";
+
     @Column
     private Integer salesCount;
 
@@ -158,6 +162,14 @@ public class Goods {
 
     public void setRecommend(Boolean recommend) {
         this.recommend = recommend;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public Integer getSalesCount() {

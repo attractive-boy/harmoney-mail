@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JD Mall 管理后台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#333}
+/* ── Login ── */
+#login-page{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)}
+.login-box{background:#fff;border-radius:16px;padding:48px 40px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo h1{font-size:24px;color:#e23935;font-weight:700;letter-spacing:1px}
+.login-logo p{color:#888;font-size:13px;margin-top:4px}
+.form-group{margin-bottom:20px}
+.form-group label{display:block;font-size:13px;color:#666;margin-bottom:6px;font-weight:500}
+.form-group input{width:100%;padding:11px 14px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;transition:.2s;outline:none}
+.form-group input:focus{border-color:#e23935;box-shadow:0 0 0 3px rgba(226,57,53,.1)}
+.btn-login{width:100%;padding:12px;background:linear-gradient(135deg,#e23935,#c0392b);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-login:hover{opacity:.9;transform:translateY(-1px)}
+.login-error{color:#e23935;font-size:13px;text-align:center;margin-top:12px}
+/* ── Layout ── */
+#app{display:none;height:100vh;overflow:hidden}
+.topbar{height:56px;background:#fff;border-bottom:1px solid #eee;display:flex;align-items:center;padding:0 24px;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.topbar-logo{font-size:18px;font-weight:700;color:#e23935;margin-right:32px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.topbar-right .user-tag{font-size:13px;color:#666}
+.btn-logout{padding:6px 14px;background:#fff;border:1.5px solid #e23935;color:#e23935;border-radius:6px;font-size:13px;cursor:pointer;transition:.2s}
+.btn-logout:hover{background:#e23935;color:#fff}
+.sidebar{width:220px;background:#1a1a2e;position:fixed;top:56px;left:0;bottom:0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:13px 20px;color:#aab4c8;font-size:14px;cursor:pointer;transition:.2s;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:rgba(226,57,53,.15);color:#e23935;border-left-color:#e23935}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.content{margin-left:220px;margin-top:56px;padding:24px;overflow-y:auto;height:calc(100vh - 56px)}
+/* ── Cards ── */
+.panel{display:none}.panel.active{display:block}
+.page-title{font-size:20px;font-weight:700;margin-bottom:20px;color:#1a1a2e}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:12px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;align-items:center;gap:16px}
+.stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.stat-info .value{font-size:26px;font-weight:700;line-height:1}
+.stat-info .label{font-size:12px;color:#999;margin-top:4px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.chart-card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.chart-card h3{font-size:14px;font-weight:600;color:#666;margin-bottom:16px}
+/* ── Table ── */
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.card-header h2{font-size:15px;font-weight:600;flex:1}
+.search-input{padding:7px 12px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:13px;width:220px;outline:none;transition:.2s}
+.search-input:focus{border-color:#e23935}
+.filter-select{padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:13px;outline:none;cursor:pointer}
+.btn{padding:8px 16px;border:none;border-radius:7px;font-size:13px;cursor:pointer;font-weight:500;transition:.2s}
+.btn-primary{background:#e23935;color:#fff}.btn-primary:hover{background:#c0392b}
+.btn-success{background:#27ae60;color:#fff}.btn-success:hover{background:#229954}
+.btn-warning{background:#f39c12;color:#fff}.btn-warning:hover{background:#e67e22}
+.btn-danger{background:#e74c3c;color:#fff}.btn-danger:hover{background:#c0392b}
+.btn-sm{padding:5px 10px;font-size:12px}
+table{width:100%;border-collapse:collapse}
+th{background:#fafafa;padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#666;border-bottom:1px solid #f0f0f0}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid #f8f8f8;vertical-align:middle}
+tr:hover td{background:#fafcff}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-active{background:#e8f5e9;color:#27ae60}
+.badge-inactive{background:#fff3e0;color:#f39c12}
+.badge-disabled{background:#fce4e4;color:#e74c3c}
+.action-btns{display:flex;gap:6px;flex-wrap:wrap}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 20px;font-size:13px;color:#666}
+.page-btn{padding:5px 10px;border:1.5px solid #e0e0e0;border-radius:6px;background:#fff;cursor:pointer;font-size:12px}
+.page-btn:hover{border-color:#e23935;color:#e23935}
+.page-btn:disabled{opacity:.4;cursor:not-allowed}
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-header{padding:20px 24px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#999;line-height:1}
+.modal-close:hover{color:#333}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px}
+.field-group{margin-bottom:16px}
+.field-group label{display:block;font-size:13px;color:#555;margin-bottom:6px;font-weight:500}
+.field-group input,.field-group select,.field-group textarea{width:100%;padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:13px;outline:none;transition:.2s;font-family:inherit}
+.field-group input:focus,.field-group select:focus,.field-group textarea:focus{border-color:#e23935}
+.field-group textarea{resize:vertical;min-height:80px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.img-preview{width:80px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #eee;margin-top:4px}
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:#333;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+/* ── Misc ── */
+.empty{text-align:center;padding:40px;color:#bbb;font-size:14px}
+.loading-mask{background:#f8f8f8;text-align:center;padding:32px;color:#bbb;font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <h1>🛍️ JD Mall</h1>
+      <p>管理员后台系统</p>
+    </div>
+    <div class="form-group">
+      <label>用户名</label>
+      <input type="text" id="username" placeholder="请输入用户名" value="admin">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" id="password" placeholder="请输入密码" value="admin123">
+    </div>
+    <button class="btn-login" onclick="doLogin()">登 录</button>
+    <p class="login-error" id="login-err"></p>
+  </div>
+</div>
+
+<!-- App Shell -->
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-logo">🛍️ JD Mall Admin</span>
+    <div class="topbar-right">
+      <span class="user-tag">👤 <span id="admin-name">admin</span></span>
+      <button class="btn-logout" onclick="doLogout()">退出登录</button>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="nav-item active" onclick="switchPanel('dashboard')"><span class="icon">📊</span>仪表盘</div>
+    <div class="nav-item" onclick="switchPanel('users')"><span class="icon">👥</span>用户管理</div>
+    <div class="nav-item" onclick="switchPanel('goods')"><span class="icon">📦</span>商品管理</div>
+    <div class="nav-item" onclick="switchPanel('news')"><span class="icon">📰</span>资讯管理</div>
+    <div class="nav-item" onclick="switchPanel('analytics')"><span class="icon">📈</span>销量分析</div>
+  </div>
+
+  <div class="content">
+
+    <!-- Dashboard -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="page-title">仪表盘概览</div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="charts-row">
+        <div class="chart-card"><h3>各分类销量</h3><canvas id="chart-cat" height="200"></canvas></div>
+        <div class="chart-card"><h3>订单状态分布</h3><canvas id="chart-order" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Users -->
+    <div class="panel" id="panel-users">
+      <div class="page-title">用户管理</div>
+      <div class="card">
+        <div class="card-header">
+          <h2>用户列表</h2>
+          <input type="text" class="search-input" id="user-kw" placeholder="搜索邮箱/手机/昵称…" onkeydown="if(event.key==='Enter')loadUsers()">
+          <select class="filter-select" id="user-status" onchange="loadUsers()">
+            <option value="">全部状态</option>
+            <option value="ACTIVE">正常</option>
+            <option value="DISABLED">禁用</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadUsers()">搜索</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>邮箱</th><th>手机</th><th>昵称</th><th>积分</th><th>状态</th><th>注册时间</th><th>操作</th></tr></thead>
+          <tbody id="user-tbody"></tbody>
+        </table>
+        <div class="pagination" id="user-page"></div>
+      </div>
+    </div>
+
+    <!-- Goods -->
+    <div class="panel" id="panel-goods">
+      <div class="page-title">商品管理</div>
+      <div class="card">
+        <div class="card-header">
+          <h2>商品列表</h2>
+          <input type="text" class="search-input" id="goods-kw" placeholder="搜索商品名/分类…" onkeydown="if(event.key==='Enter')loadGoods()">
+          <select class="filter-select" id="goods-status" onchange="loadGoods()">
+            <option value="">全部状态</option>
+            <option value="ACTIVE">已上架</option>
+            <option value="INACTIVE">已下架</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadGoods()">搜索</button>
+          <button class="btn btn-success" onclick="openGoodsModal()">+ 新增商品</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>图片</th><th>商品名称</th><th>分类</th><th>价格</th><th>销量</th><th>状态</th><th>上架时间</th><th>操作</th></tr></thead>
+          <tbody id="goods-tbody"></tbody>
+        </table>
+        <div class="pagination" id="goods-page"></div>
+      </div>
+    </div>
+
+    <!-- News -->
+    <div class="panel" id="panel-news">
+      <div class="page-title">资讯管理</div>
+      <div class="card">
+        <div class="card-header">
+          <h2>资讯列表</h2>
+          <button class="btn btn-success" onclick="openNewsModal()">+ 发布资讯</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>标题</th><th>分类</th><th>来源</th><th>阅读量</th><th>发布日期</th><th>操作</th></tr></thead>
+          <tbody id="news-tbody"></tbody>
+        </table>
+        <div class="pagination" id="news-page"></div>
+      </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="panel" id="panel-analytics">
+      <div class="page-title">销量分析</div>
+      <div class="stats-grid" id="analytics-stats"></div>
+      <div class="charts-row">
+        <div class="chart-card" style="grid-column:span 2"><h3>各分类总销量</h3><canvas id="chart-cat2" height="120"></canvas></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<!-- Goods Modal -->
+<div class="modal-overlay" id="goods-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="goods-modal-title">新增商品</h3>
+      <button class="modal-close" onclick="closeModal('goods-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="goods-id">
+      <div class="field-row">
+        <div class="field-group"><label>商品名称 *</label><input id="g-desc" placeholder="请输入商品名称"></div>
+        <div class="field-group"><label>价格 *</label><input id="g-price" placeholder="例：299.00"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group"><label>分类编码</label><input id="g-category" placeholder="例：phone"></div>
+        <div class="field-group"><label>店铺名</label><input id="g-store" placeholder="请输入店铺名"></div>
+      </div>
+      <div class="field-group"><label>商品图片URL</label><input id="g-img" placeholder="https://..." oninput="previewImg()"></div>
+      <img id="g-img-preview" class="img-preview" style="display:none">
+      <div class="field-row">
+        <div class="field-group"><label>副标题1</label><input id="g-des1" placeholder=""></div>
+        <div class="field-group"><label>副标题2</label><input id="g-des2" placeholder=""></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>状态</label>
+          <select id="g-status">
+            <option value="ACTIVE">已上架</option>
+            <option value="INACTIVE">下架</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>推荐商品</label>
+          <select id="g-recommend">
+            <option value="false">否</option>
+            <option value="true">是</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-group"><label>标签 (tag)</label><input id="g-tag" placeholder="关键标签"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#f0f0f0" onclick="closeModal('goods-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveGoods()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- News Modal -->
+<div class="modal-overlay" id="news-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="news-modal-title">发布资讯</h3>
+      <button class="modal-close" onclick="closeModal('news-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="news-id">
+      <div class="field-group"><label>标题 *</label><input id="n-title" placeholder="请输入资讯标题"></div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>分类</label>
+          <select id="n-category">
+            <option value="INDUSTRY">行业动态</option>
+            <option value="TECH">技术趋势</option>
+          </select>
+        </div>
+        <div class="field-group"><label>来源</label><input id="n-source" placeholder="例：行业观察"></div>
+      </div>
+      <div class="field-group"><label>封面图URL</label><input id="n-img" placeholder="https://..."></div>
+      <div class="field-group"><label>摘要</label><textarea id="n-summary" rows="2" placeholder="一句话简介…"></textarea></div>
+      <div class="field-group"><label>正文内容</label><textarea id="n-content" rows="8" placeholder="支持 ▌ 开头的段落标题、- 开头的列表项…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="background:#f0f0f0" onclick="closeModal('news-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveNews()">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────
+const BASE = '';  // same origin
+let TOKEN = '';
+let catChart, orderChart, cat2Chart;
+
+const ORDER_STATUS_LABEL = {
+  PENDING_PAYMENT:'待付款', PENDING_SHIPMENT:'待发货',
+  PENDING_RECEIPT:'待收货', COMPLETED:'已完成', CANCELLED:'已取消'
+};
+
+// ── Auth ──────────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value.trim();
+  const res = await api('/admin/login', { username, password });
+  if (res.code === '0') {
+    TOKEN = res.data.token;
+    document.getElementById('admin-name').textContent = res.data.username;
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadDashboard();
+  } else {
+    document.getElementById('login-err').textContent = res.msg || '登录失败';
+  }
+}
+
+function doLogout() {
+  TOKEN = '';
+  document.getElementById('login-page').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+// ── Navigation ────────────────────────────────────────────────────
+function switchPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'users') loadUsers();
+  if (name === 'goods') loadGoods();
+  if (name === 'news') loadNews();
+  if (name === 'analytics') loadAnalytics();
+}
+
+// ── API ───────────────────────────────────────────────────────────
+async function api(path, body) {
+  const payload = Object.assign({ token: TOKEN }, body);
+  const r = await fetch(BASE + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return r.json();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────
+function toast(msg, isErr) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = isErr ? '#e23935' : '#27ae60';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────
+async function loadDashboard() {
+  const res = await api('/admin/dashboard', {});
+  if (res.code !== '0') return;
+  const d = res.data;
+  const stats = [
+    { label:'总用户', value: d.totalUsers, icon:'👥', bg:'#e3f2fd', c:'#1565c0' },
+    { label:'正常用户', value: d.activeUsers, icon:'✅', bg:'#e8f5e9', c:'#2e7d32' },
+    { label:'总商品', value: d.totalGoods, icon:'📦', bg:'#fff3e0', c:'#e65100' },
+    { label:'已上架', value: d.activeGoods, icon:'🟢', bg:'#f3e5f5', c:'#6a1b9a' },
+    { label:'总订单', value: d.totalOrders, icon:'🧾', bg:'#fce4ec', c:'#880e4f' },
+    { label:'总资讯', value: d.totalArticles, icon:'📰', bg:'#e0f7fa', c:'#00695c' },
+  ];
+  document.getElementById('stats-grid').innerHTML = stats.map(s =>
+    `<div class="stat-card">
+       <div class="stat-icon" style="background:${s.bg};color:${s.c}">${s.icon}</div>
+       <div class="stat-info"><div class="value" style="color:${s.c}">${s.value}</div><div class="label">${s.label}</div></div>
+     </div>`
+  ).join('');
+  // category sales chart
+  const cats = d.categorySales || [];
+  if (catChart) catChart.destroy();
+  catChart = new Chart(document.getElementById('chart-cat'), {
+    type: 'bar',
+    data: {
+      labels: cats.map(c => c.category || '无'),
+      datasets: [{ label:'销量', data: cats.map(c => c.sales || 0),
+        backgroundColor: '#e23935', borderRadius: 4 }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+  // order status pie
+  const os = d.orderStats || {};
+  if (orderChart) orderChart.destroy();
+  orderChart = new Chart(document.getElementById('chart-order'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(os).map(k => ORDER_STATUS_LABEL[k] || k),
+      datasets: [{ data: Object.values(os),
+        backgroundColor: ['#ffc107','#2196f3','#9c27b0','#4caf50','#f44336'] }]
+    },
+    options: { plugins: { legend: { position: 'right' } }, cutout:'60%' }
+  });
+}
+
+// ── Users ─────────────────────────────────────────────────────────
+let userPage = 0;
+async function loadUsers(pg) {
+  if (pg !== undefined) userPage = pg;
+  const res = await api('/admin/user/list', {
+    keyword: document.getElementById('user-kw').value,
+    status: document.getElementById('user-status').value,
+    page: userPage, size: 15
+  });
+  if (res.code !== '0') { toast(res.msg || '加载失败', true); return; }
+  const d = res.data;
+  document.getElementById('user-tbody').innerHTML = (d.list || []).map(u =>
+    `<tr>
+      <td>${u.id}</td>
+      <td>${u.email || '-'}</td>
+      <td>${u.phone || '-'}</td>
+      <td>${u.nickname || '-'}</td>
+      <td>${u.points || 0}</td>
+      <td><span class="badge ${u.status === 'ACTIVE' ? 'badge-active' : 'badge-disabled'}">${u.status === 'ACTIVE' ? '正常' : '禁用'}</span></td>
+      <td>${u.createdAt}</td>
+      <td class="action-btns">
+        <button class="btn btn-sm ${u.status === 'ACTIVE' ? 'btn-warning' : 'btn-success'}"
+          onclick="toggleUser(${u.id})">${u.status === 'ACTIVE' ? '禁用' : '启用'}</button>
+      </td>
+    </tr>`
+  ).join('') || '<tr><td colspan="8" class="empty">暂无数据</td></tr>';
+  renderPagination('user-page', userPage, d.totalPages, 'loadUsers');
+}
+async function toggleUser(id) {
+  const res = await api('/admin/user/toggleStatus', { id });
+  res.code === '0' ? (toast('状态已更新'), loadUsers()) : toast(res.msg || '操作失败', true);
+}
+
+// ── Goods ─────────────────────────────────────────────────────────
+let goodsPage = 0;
+async function loadGoods(pg) {
+  if (pg !== undefined) goodsPage = pg;
+  const res = await api('/admin/goods/list', {
+    keyword: document.getElementById('goods-kw').value,
+    status: document.getElementById('goods-status').value,
+    page: goodsPage, size: 15
+  });
+  if (res.code !== '0') { toast(res.msg || '加载失败', true); return; }
+  const d = res.data;
+  document.getElementById('goods-tbody').innerHTML = (d.list || []).map(g =>
+    `<tr>
+      <td>${g.id}</td>
+      <td>${g.imgUrl ? `<img src="${g.imgUrl}" style="width:50px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #eee" onerror="this.style.display='none'">` : '-'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${g.description}">${g.description || '-'}</td>
+      <td>${g.categoryCode || '-'}</td>
+      <td>¥${g.price || 0}</td>
+      <td>${g.salesCount || 0}</td>
+      <td><span class="badge ${g.status === 'ACTIVE' ? 'badge-active' : 'badge-inactive'}">${g.status === 'ACTIVE' ? '已上架' : '已下架'}</span></td>
+      <td>${g.createdAt}</td>
+      <td class="action-btns">
+        <button class="btn btn-sm btn-primary" onclick="editGoods(${g.id})">编辑</button>
+        <button class="btn btn-sm ${g.status === 'ACTIVE' ? 'btn-warning' : 'btn-success'}"
+          onclick="toggleGoods(${g.id})">${g.status === 'ACTIVE' ? '下架' : '上架'}</button>
+      </td>
+    </tr>`
+  ).join('') || '<tr><td colspan="9" class="empty">暂无数据</td></tr>';
+  renderPagination('goods-page', goodsPage, d.totalPages, 'loadGoods');
+}
+let editingGoods = null;
+function openGoodsModal(g) {
+  editingGoods = g || null;
+  document.getElementById('goods-modal-title').textContent = g ? '编辑商品' : '新增商品';
+  document.getElementById('goods-id').value = g ? g.id : '';
+  document.getElementById('g-desc').value = g ? (g.description || '') : '';
+  document.getElementById('g-price').value = g ? (g.price || '') : '';
+  document.getElementById('g-category').value = g ? (g.categoryCode || '') : '';
+  document.getElementById('g-store').value = g ? (g.storeName || '') : '';
+  document.getElementById('g-img').value = g ? (g.imgUrl || '') : '';
+  document.getElementById('g-des1').value = g ? (g.des1 || '') : '';
+  document.getElementById('g-des2').value = g ? (g.des2 || '') : '';
+  document.getElementById('g-tag').value = g ? (g.tag || '') : '';
+  document.getElementById('g-status').value = g ? (g.status || 'ACTIVE') : 'ACTIVE';
+  document.getElementById('g-recommend').value = g ? String(g.recommend) : 'false';
+  previewImg();
+  document.getElementById('goods-modal').classList.add('open');
+}
+async function editGoods(id) {
+  const res = await api('/admin/goods/list', { keyword: String(id), page: 0, size: 1 });
+  // fallback: open with id only
+  const g = res.data?.list?.[0];
+  openGoodsModal(g || { id });
+}
+function previewImg() {
+  const v = document.getElementById('g-img').value;
+  const img = document.getElementById('g-img-preview');
+  if (v) { img.src = v; img.style.display = 'block'; } else { img.style.display = 'none'; }
+}
+async function saveGoods() {
+  const id = document.getElementById('goods-id').value;
+  const body = {
+    description: document.getElementById('g-desc').value,
+    price: document.getElementById('g-price').value,
+    categoryCode: document.getElementById('g-category').value,
+    storeName: document.getElementById('g-store').value,
+    imgUrl: document.getElementById('g-img').value,
+    des1: document.getElementById('g-des1').value,
+    des2: document.getElementById('g-des2').value,
+    tag: document.getElementById('g-tag').value,
+    status: document.getElementById('g-status').value,
+    recommend: document.getElementById('g-recommend').value,
+  };
+  if (id) body.id = id;
+  const res = await api(id ? '/admin/goods/update' : '/admin/goods/create', body);
+  if (res.code === '0') { toast('保存成功'); closeModal('goods-modal'); loadGoods(); }
+  else toast(res.msg || '保存失败', true);
+}
+async function toggleGoods(id) {
+  const res = await api('/admin/goods/toggleStatus', { id });
+  res.code === '0' ? (toast('状态已更新'), loadGoods()) : toast(res.msg || '操作失败', true);
+}
+
+// ── News ──────────────────────────────────────────────────────────
+let newsPage = 0;
+async function loadNews(pg) {
+  if (pg !== undefined) newsPage = pg;
+  const res = await api('/admin/news/list', { page: newsPage, size: 15 });
+  if (res.code !== '0') { toast(res.msg || '加载失败', true); return; }
+  const d = res.data;
+  document.getElementById('news-tbody').innerHTML = (d.list || []).map(a =>
+    `<tr>
+      <td>${a.id}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${a.title}">${a.title}</td>
+      <td><span class="badge ${a.category === 'TECH' ? 'badge-active' : 'badge-inactive'}">${a.category === 'TECH' ? '技术趋势' : '行业动态'}</span></td>
+      <td>${a.source || '-'}</td>
+      <td>${a.viewCount || 0}</td>
+      <td>${a.publishedAt}</td>
+      <td class="action-btns">
+        <button class="btn btn-sm btn-primary" onclick="editNews(${JSON.stringify(a).split('"').join('&quot;')})">编辑</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteNews(${a.id})">删除</button>
+      </td>
+    </tr>`
+  ).join('') || '<tr><td colspan="7" class="empty">暂无数据</td></tr>';
+  renderPagination('news-page', newsPage, d.totalPages, 'loadNews');
+}
+function openNewsModal() {
+  document.getElementById('news-modal-title').textContent = '发布资讯';
+  document.getElementById('news-id').value = '';
+  ['n-title','n-source','n-img','n-summary','n-content'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('n-category').value = 'INDUSTRY';
+  document.getElementById('news-modal').classList.add('open');
+}
+function editNews(a) {
+  if (typeof a === 'string') a = JSON.parse(a);
+  document.getElementById('news-modal-title').textContent = '编辑资讯';
+  document.getElementById('news-id').value = a.id;
+  document.getElementById('n-title').value = a.title || '';
+  document.getElementById('n-category').value = a.category || 'INDUSTRY';
+  document.getElementById('n-source').value = a.source || '';
+  document.getElementById('n-img').value = a.imageUrl || '';
+  document.getElementById('n-summary').value = a.summary || '';
+  document.getElementById('n-content').value = a.content || '';
+  document.getElementById('news-modal').classList.add('open');
+}
+async function saveNews() {
+  const id = document.getElementById('news-id').value;
+  const body = {
+    title: document.getElementById('n-title').value,
+    category: document.getElementById('n-category').value,
+    source: document.getElementById('n-source').value,
+    imageUrl: document.getElementById('n-img').value,
+    summary: document.getElementById('n-summary').value,
+    content: document.getElementById('n-content').value,
+  };
+  if (id) body.id = id;
+  const res = await api(id ? '/admin/news/update' : '/admin/news/create', body);
+  if (res.code === '0') { toast('发布成功'); closeModal('news-modal'); loadNews(); }
+  else toast(res.msg || '发布失败', true);
+}
+async function deleteNews(id) {
+  if (!confirm('确认删除该资讯？')) return;
+  const res = await api('/admin/news/delete', { id });
+  res.code === '0' ? (toast('已删除'), loadNews()) : toast(res.msg || '删除失败', true);
+}
+
+// ── Analytics ─────────────────────────────────────────────────────
+async function loadAnalytics() {
+  const res = await api('/admin/analytics/sales', {});
+  if (res.code !== '0') return;
+  const d = res.data;
+  document.getElementById('analytics-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fce4ec;color:#c62828">💰</div>
+      <div class="stat-info"><div class="value" style="color:#c62828">¥${d.totalRevenue || 0}</div><div class="label">累计订单金额</div></div>
+    </div>
+    ${Object.entries(d.orderStatusCount || {}).map(([k,v]) =>
+      `<div class="stat-card">
+        <div class="stat-info"><div class="value">${v}</div><div class="label">${ORDER_STATUS_LABEL[k] || k}</div></div>
+       </div>`
+    ).join('')}
+  `;
+  const cats = d.categorySales || [];
+  if (cat2Chart) cat2Chart.destroy();
+  cat2Chart = new Chart(document.getElementById('chart-cat2'), {
+    type: 'bar',
+    data: {
+      labels: cats.map(c => c.category || '无'),
+      datasets: [{ label:'总销量', data: cats.map(c => c.sales || 0),
+        backgroundColor: cats.map((_,i) => `hsl(${i*40},70%,55%)`), borderRadius: 6 }]
+    },
+    options: { plugins: { legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function renderPagination(elId, page, totalPages, fn) {
+  document.getElementById(elId).innerHTML =
+    `<button class="page-btn" ${page===0?'disabled':''} onclick="${fn}(${page-1})">‹ 上一页</button>
+     <span>第 ${page+1} / ${totalPages||1} 页</span>
+     <button class="page-btn" ${page+1>=totalPages?'disabled':''} onclick="${fn}(${page+1})">下一页 ›</button>`;
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+document.addEventListener('keydown', e => { if(e.key==='Enter' && document.getElementById('login-page').style.display!=='none') doLogin(); });
+</script>
+</body>
+</html>

@@ -44,6 +44,10 @@ public class User {
     @Column(nullable = false)
     private Instant createdAt;
 
+    /** ACTIVE=正常  DISABLED=已禁用 */
+    @Column(nullable = false)
+    private String status = "ACTIVE";
+
     public User() {
     }
 
@@ -129,5 +133,13 @@ public class User {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

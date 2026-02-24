@@ -10,6 +10,8 @@
     "pages/order/settlement",
     "pages/mine/coupon",
     "pages/mine/address",
-    "pages/mine/addressEdit"
+    "pages/mine/addressEdit",
+    "pages/news/newsList",
+    "pages/news/newsDetail"
   ]
 }
