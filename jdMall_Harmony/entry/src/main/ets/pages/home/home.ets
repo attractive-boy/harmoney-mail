@@ -34,37 +34,12 @@ export struct Home {
   private nineMenuList = new DataSource<NineMenuInfo>([])
   private nineMenuList2 = new DataSource<NineMenuInfo>([])
 
-  private readonly hiddenMenuNames: Set<string> = new Set([
-    '品质购物节',
-    '精选',
-    '新品',
-    '直播',
-    '实惠',
-    '进口',
-    '国际',
-    '到家',
-    '推荐分类'
-  ])
-
-  private readonly hiddenTabNames: Set<string> = new Set([
-    '品质购物节',
-    '精选推荐',
-    '趋势精选',
-    '精选',
-    '新品',
-    '直播',
-    '实惠',
-    '进口',
-    '国际',
-    '到家',
-    '推荐分类'
-  ])
-
   goodsItemWidth = (DisplayUtil.getWidth() - 30) / 2
   private strategyOptions: StrategyOption[] = [
     { label: '智能推荐', value: 'smart' },
     { label: '销量最高', value: 'topSales' },
-    { label: '评价最优', value: 'topRated' }
+    { label: '评价最优', value: 'topRated' },
+    { label: '新品上架', value: 'newArrival' }
   ]
 
   aboutToAppear() {
@@ -79,7 +54,7 @@ export struct Home {
         Scroll(this.scrollScroller) {
           Column() {
             this.SwiperComponent()
-            this.AdvComponent()
+            // this.AdvComponent()
             this.MenuSlider()
             this.StrategyBar()
             this.TabsContentList()
@@ -345,10 +320,10 @@ export struct Home {
               onScrollIndexCall: (first => { this.showBackTop[index] = first > 2 })
             })
           }
-        }.tabBar(this.TabBarBuilder(item.name, index))
+        } //.tabBar(this.TabBarBuilder(item.name, index))
       })
     }
-    .barHeight(50)
+    .barHeight(2)
     .vertical(false)
     .height(StyleConstants.FULL_HEIGHT)
   }
@@ -375,16 +350,14 @@ export struct Home {
     LogUtil.info(['[home] queryInfo start'])
     queryHomePageInfo().then((info: HomePageInfo) => {
       LogUtil.info(['[home] queryInfo success', JSON.stringify(info || {})])
-      const menuList = (info.nineMenuList || []).filter(item => !this.hiddenMenuNames.has((item.menuName || '').trim()))
-      const tabList = (info.tabList || []).filter(item => !this.hiddenTabNames.has((item.name || '').trim()))
       this.adUrl = info.adUrl
       this.swiperData.setData(info.bannerList || [])
-      this.nineMenuList.setData(menuList.filter((_, index)=> index < 10))
-      this.nineMenuList2.setData(menuList.filter((_, index)=> index >= 10))
+      this.nineMenuList.setData(info.nineMenuList?.filter((_, index)=> index < 10))
+      this.nineMenuList2.setData(info.nineMenuList?.filter((_, index)=> index >= 10))
 
-      const tabLen = tabList.length
+      const tabLen = (info.tabList || []).length
       this.showBackTop = new Array(tabLen).fill(false)
-      this.tabList = tabList
+      this.tabList = info.tabList || []
     }).catch((error: ESObject) => {
       LogUtil.error(['[home] queryInfo failed', JSON.stringify(error || {})])
     })

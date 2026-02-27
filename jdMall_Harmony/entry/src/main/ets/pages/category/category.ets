@@ -229,7 +229,7 @@ export struct Category {
       const byName = new Map(list.map(item => [item.name, item]))
       const orderedList = preferredOrder
         .map(name => byName.get(name))
-        .filter((item): item is CategoryInfo => item !== undefined)
+        .filter(item => item !== undefined) as CategoryInfo[]
       const finalList = orderedList.length > 0 ? orderedList : list
       const defaultCategoryCode = finalList.length ? finalList[0].code : ''
       this.categoryList = finalList
